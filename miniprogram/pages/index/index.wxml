@@ -4,13 +4,13 @@
     <view class="form-item">
       <text>生日</text>
       <picker mode="date" bindchange="onBirthdayChange">
-        <view class="picker">{{birthday || '请选择'}}</view>
+        <view class="picker">{{birthday || '请选择生日'}}</view>
       </picker>
     </view>
     <view class="form-item">
       <text>时辰</text>
       <picker mode="selector" range="{{hours}}" bindchange="onHourChange">
-        <view class="picker">{{hours[hour]}}</view>
+        <view class="picker">{{hours[hourIndex] || '请选择时辰'}}</view>
       </picker>
     </view>
     <view class="form-item">
@@ -22,7 +22,7 @@
     </view>
     <view class="form-item">
       <text>出生地</text>
-      <input placeholder="选填" value="{{location}}" bindinput="onLocationInput" />
+      <input placeholder="选填，如：北京" value="{{location}}" bindinput="onLocationInput" />
     </view>
     <button type="primary" bindtap="submit">开始分析</button>
   </view>

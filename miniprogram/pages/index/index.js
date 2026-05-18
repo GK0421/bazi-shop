@@ -2,7 +2,8 @@
 Page({
   data: {
     birthday: '',
-    hour: 12,
+    hours: ['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'],
+    hourIndex: 11,  // 默认未时（index 7=未时，这里默认12时→index 11）
     gender: '男',
     location: ''
   },
@@ -12,7 +13,11 @@ Page({
   },
 
   onHourChange(e) {
-    this.setData({ hour: parseInt(e.detail.value) });
+    const hourMap = [23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21];
+    this.setData({
+      hourIndex: parseInt(e.detail.value),
+      hour: hourMap[parseInt(e.detail.value)]
+    });
   },
 
   onGenderChange(e) {
