@@ -1,0 +1,8 @@
+This project adapts materials from:
+jinchenma94/bazi-skill
+https://github.com/jinchenma94/bazi-skill
+
+Original license: MIT License.
+Original copyright: Copyright (c) 2025 jinchenma94.
+
+This derivative project wraps the original Claude Code skill materials into a WeChat Mini Program engineering structure. The application is intended for traditional-culture learning and technical demonstration only.

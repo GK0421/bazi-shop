@@ -1,0 +1,7 @@
+{
+  "name": "analyzeBazi",
+  "version": "1.0.0",
+  "description": "八字分析云函数",
+  "main": "index.js",
+  "dependencies": {}
+}

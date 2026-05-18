@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+project.private.config.json
+cloudfunctions/**/.env
+cloudfunctions/**/.env.local
+04_secrets_local/
+*.key
+*.pem
