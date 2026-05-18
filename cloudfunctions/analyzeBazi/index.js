@@ -1,126 +1,254 @@
 'use strict';
 
-// 微信云函数：analyzeBazi
-// 接收参数：birthday（YYYY-MM-DD）, hour（0-23）, gender（男/女）, location（出生地）
-// 调用 MiniMax 大模型 API（MiniMax-M2.7）
+const http = require('http');
+const https = require('https');
+const cloud = require('wx-server-sdk');
 
-exports.main = async (event, context) => {
-  const { birthday, hour, gender, location } = event;
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+});
 
-  // ── 1. 输入校验 ────────────────────────────────────────────
-  if (!birthday || !gender) {
-    return { success: false, error: '缺少必要参数（birthday, gender）' };
+const DEFAULT_PROVIDER = 'minimax';
+const REQUIRED_MODEL = 'MiniMax-M2.7';
+const DEFAULT_DISCLAIMER = '本内容仅用于传统干支文化学习和娱乐参考，不构成现实决策依据。请理性看待，重要事项请以现实信息和专业意见为准。';
+const BANNED_PATTERNS = [
+  /发财/,
+  /暴富/,
+  /改运/,
+  /转运/,
+  /化解/,
+  /疾病/,
+  /死亡/,
+  /灾祸/,
+  /灾难/,
+  /婚恋.*(一定|必定|确定|注定)/,
+  /(一定|必定|确定|注定).*(结婚|离婚|分手|复合|婚恋)/,
+  /保证/,
+  /必然/
+];
+
+exports.main = async (event = {}) => {
+  const input = normalizeInput(event);
+  const config = readConfig();
+
+  if (!config.ok) {
+    return {
+      ok: false,
+      input,
+      provider: DEFAULT_PROVIDER,
+      model: REQUIRED_MODEL,
+      report: {
+        title: '配置缺失',
+        summary: config.message,
+        disclaimer: DEFAULT_DISCLAIMER
+      }
+    };
   }
 
-  const hourNum = parseInt(hour);
-  if (isNaN(hourNum) || hourNum < 0 || hourNum > 23) {
-    return { success: false, error: '时辰参数无效（需 0-23）' };
+  // Validate required input fields
+  if (!input.birthday || !input.hour || !input.gender) {
+    return {
+      ok: false,
+      input,
+      provider: DEFAULT_PROVIDER,
+      model: REQUIRED_MODEL,
+      report: {
+        title: '信息不完整',
+        summary: '请填写生日、出生时辰和性别。',
+        disclaimer: DEFAULT_DISCLAIMER
+      }
+    };
   }
-
-  if (String(location || '').length > 100) {
-    return { success: false, error: '出生地长度超出限制（最多100字符）' };
-  }
-
-  // ── 2. 大模型 API 调用 ────────────────────────────────────
-  const apiKey = process.env.LLM_API_KEY;
-  const baseUrl = process.env.LLM_BASE_URL || 'https://api.minimax.chat/v1';
-  const model   = process.env.LLM_MODEL || 'MiniMax-M2.7';
-
-  if (!apiKey) {
-    return { success: false, error: 'LLM_API_KEY 未配置，请联系管理员' };
-  }
-
-  // system prompt（强制中文输出）
-  const systemPrompt = `你是一位专业的中国传统八字命理分析专家，精通五行、十神、大运、流年等体系。
-
-【语言要求】必须用简体中文回答，所有输出必须是中文。
-
-【分析要求】
-根据用户提供的生日、时辰、性别、出生地，计算并分析八字：
-- 排出年柱、月柱、日柱、时柱（天干地支）
-- 分析五行分布与旺弱
-- 分析十神象征与性格特点
-- 给出事业、感情方面的大致建议（仅供参考）
-
-【免责声明（必须附加在回复末尾）】
-以下分析结果由 AI 生成，仅供娱乐和文化学习参考，不构成医疗、投资、法律等专业建议。命运由个人努力决定，请理性看待。
-
-【严格禁止】
-- 不得承诺改运、化解、算命准不准
-- 不得预测具体死亡日期或灾难
-- 不得提供医疗或投资建议
-- 不得使用"一定"、"必定"、"保证"等绝对化语气`;
-
-  const userPrompt = `请分析以下八字信息：
-
-生日：${birthday}
-时辰：${hourNum}时（${getShichen(hourNum)}）
-性别：${gender}
-出生地：${location || '不详'}
-
-请用简体中文输出分析结果。`;
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
+    const response = await postJson(`${config.baseUrl}/chat/completions`, {
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        Authorization: `Bearer ${config.apiKey}`
       },
-      body: JSON.stringify({
-        model: model,
+      body: {
+        model: REQUIRED_MODEL,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user',   content: userPrompt }
+          { role: 'system', content: buildSystemPrompt() },
+          { role: 'user', content: buildUserPrompt(input) }
         ],
-        max_tokens: 800,
-        temperature: 0.7
-      })
+        temperature: 0.6,
+        max_tokens: 900
+      }
     });
 
-    const data = await response.json();
+    const data = response.body;
 
-    if (!response.ok) {
-      const msg = data?.error?.message || `HTTP ${response.status}`;
-      return { success: false, error: `API 调用失败：${msg}` };
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      return {
+        ok: false,
+        input,
+        provider: DEFAULT_PROVIDER,
+        model: REQUIRED_MODEL,
+        report: {
+          title: '分析暂不可用',
+          summary: '模型服务暂时没有返回可用结果，请稍后再试。',
+          disclaimer: DEFAULT_DISCLAIMER
+        }
+      };
     }
 
-    const result = data.choices[0].message.content;
-
-    // ── 3. 输出审查 ────────────────────────────────────────────
-    const banned = ['保证', '一定', '必定', '改运', '化解', '算命准', '死亡日期', '医疗建议', '投资建议'];
-    let safeResult = result;
-    for (const word of banned) {
-      if (safeResult.includes(word)) {
-        safeResult = safeResult.replace(/./g, '*');
-        safeResult += '\n\n[系统提示：检测到输出内容异常，已做脱敏处理]';
-        break;
-      }
-    }
+    const text = data && data.choices && data.choices[0] && data.choices[0].message
+      ? String(data.choices[0].message.content || '')
+      : '';
 
     return {
-      success: true,
-      birthday, hour: hourNum, gender, location,
-      result: safeResult,
-      model_used: model,
-      request_id: data.id || 'local-test'
+      ok: true,
+      input,
+      provider: DEFAULT_PROVIDER,
+      model: REQUIRED_MODEL,
+      report: buildReport(text)
     };
-
-  } catch (err) {
-    return { success: false, error: `网络异常：${err.message}` };
+  } catch (error) {
+    return {
+      ok: false,
+      input,
+      provider: DEFAULT_PROVIDER,
+      model: REQUIRED_MODEL,
+      report: {
+        title: '分析暂不可用',
+        summary: '模型服务连接失败，请稍后再试。',
+        disclaimer: DEFAULT_DISCLAIMER
+      }
+    };
   }
 };
 
-// ── 时辰地支转换 ────────────────────────────────────────────
-function getShichen(hour) {
-  const map = [
-    [23, 1, '子时'], [1, 3, '丑时'], [3, 5, '寅时'], [5, 7, '卯时'],
-    [7, 9, '辰时'],  [9, 11, '巳时'], [11, 13, '午时'], [13, 15, '未时'],
-    [15, 17, '申时'], [17, 19, '酉时'], [19, 21, '戌时'], [21, 23, '亥时']
-  ];
-  for (const [start, end, name] of map) {
-    if (start === 23 && hour >= 23) return name;
-    if (hour >= start && hour < end) return name;
+function postJson(url, options) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(url);
+    const body = JSON.stringify(options.body || {});
+    const transport = target.protocol === 'http:' ? http : https;
+
+    const request = transport.request({
+      method: 'POST',
+      hostname: target.hostname,
+      port: target.port || undefined,
+      path: `${target.pathname}${target.search}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        ...options.headers
+      }
+    }, (response) => {
+      let raw = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        raw += chunk;
+      });
+      response.on('end', () => {
+        let parsed = {};
+        try {
+          parsed = raw ? JSON.parse(raw) : {};
+        } catch (error) {
+          parsed = {};
+        }
+        resolve({ statusCode: response.statusCode || 0, body: parsed });
+      });
+    });
+
+    request.on('error', reject);
+    request.write(body);
+    request.end();
+  });
+}
+
+function readConfig() {
+  const provider = String(process.env.LLM_PROVIDER || '').trim().toLowerCase();
+  const baseUrl = String(process.env.LLM_BASE_URL || '').trim().replace(/\/+$/, '');
+  const model = String(process.env.LLM_MODEL || '').trim();
+  const apiKey = String(process.env.LLM_API_KEY || '').trim();
+
+  if (!provider || !baseUrl || !model || !apiKey) {
+    return { ok: false, message: '请先配置 LLM_PROVIDER、LLM_BASE_URL、LLM_MODEL、LLM_API_KEY。' };
   }
-  return '丑时';
+
+  if (provider !== DEFAULT_PROVIDER) {
+    return { ok: false, message: '当前云函数仅支持 minimax 服务。' };
+  }
+
+  if (model !== REQUIRED_MODEL) {
+    return { ok: false, message: '当前云函数仅支持 MiniMax-M2.7 模型。' };
+  }
+
+  return { ok: true, baseUrl, apiKey };
+}
+
+function normalizeInput(event) {
+  return {
+    birthday: stringValue(event.birthday),
+    hour: stringValue(event.hour),
+    gender: stringValue(event.gender),
+    location: stringValue(event.location)
+  };
+}
+
+function stringValue(value) {
+  return value === undefined || value === null ? '' : String(value).trim();
+}
+
+function buildSystemPrompt() {
+  return [
+    '你是传统干支文化学习助手。',
+    '请只从传统干支、五行、节气与民俗文化角度做学习和娱乐参考。',
+    '不要给出发财、改运、疾病、死亡、灾祸、婚恋确定性预测。',
+    '不要使用一定、必定、注定、保证等确定性表达。',
+    '请用简体中文输出一个 JSON 对象，只包含 title、summary、disclaimer 三个字符串字段。',
+    `disclaimer 固定使用：${DEFAULT_DISCLAIMER}`
+  ].join('\n');
+}
+
+function buildUserPrompt(input) {
+  return [
+    '请基于以下信息生成传统干支文化学习参考：',
+    `生日：${input.birthday || '未提供'}`,
+    `时辰：${input.hour || '未提供'}`,
+    `性别：${input.gender || '未提供'}`,
+    `出生地：${input.location || '未提供'}`,
+    'summary 请保持温和、克制、非确定性，只用于文化学习和娱乐参考。'
+  ].join('\n');
+}
+
+function buildReport(text) {
+  const parsed = parseJsonObject(text);
+  const report = {
+    title: sanitizeText(parsed.title || '传统干支文化参考'),
+    summary: sanitizeText(parsed.summary || text || '暂未生成有效内容，请稍后再试。'),
+    disclaimer: DEFAULT_DISCLAIMER
+  };
+
+  if (!report.summary) {
+    report.summary = '暂未生成有效内容，请稍后再试。';
+  }
+
+  return report;
+}
+
+function parseJsonObject(text) {
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return {};
+
+    try {
+      return JSON.parse(match[0]);
+    } catch (innerError) {
+      return {};
+    }
+  }
+}
+
+function sanitizeText(text) {
+  let result = String(text || '').trim();
+  for (const pattern of BANNED_PATTERNS) {
+    result = result.replace(pattern, '相关现实判断');
+  }
+  return result;
 }

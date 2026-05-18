@@ -1,0 +1,98 @@
+/* 全局样式变量 */
+page {
+  --color-primary: #2D6A4F;
+  --color-accent: #C9A84C;
+  --color-bg: #FDF6E3;
+  --color-text: #333333;
+  --color-text-light: #666666;
+  --color-border: #E0D8C8;
+  --font-size-lg: 36rpx;
+  --font-size-md: 30rpx;
+  --font-size-sm: 26rpx;
+  background-color: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+}
+
+/* 容器 */
+.container {
+  padding: 40rpx 30rpx;
+}
+
+/* 卡片 */
+.card {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 40rpx 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 主按钮 */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-radius: 12rpx;
+  font-size: var(--font-size-lg);
+  padding: 24rpx 0;
+  text-align: center;
+  margin-top: 30rpx;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+}
+
+/* 次要按钮 */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary);
+  border-radius: 12rpx;
+  font-size: var(--font-size-lg);
+  padding: 24rpx 0;
+  text-align: center;
+  margin-top: 20rpx;
+}
+
+/* 表单项 */
+.form-item {
+  margin-bottom: 40rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+.form-picker,
+.form-input,
+.form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2rpx solid var(--color-border);
+  border-radius: 10rpx;
+  padding: 20rpx;
+  font-size: var(--font-size-md);
+  background: #FFFFFF;
+  color: var(--color-text);
+}
+
+.form-textarea {
+  min-height: 160rpx;
+  resize: vertical;
+}
+
+/* 免责声明 */
+.disclaimer-text {
+  font-size: 22rpx;
+  color: #999999;
+  text-align: center;
+  padding: 30rpx 20rpx;
+  line-height: 1.8;
+}

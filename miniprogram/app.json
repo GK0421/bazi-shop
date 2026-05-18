@@ -1,12 +1,14 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/result/result"
+    "pages/form/index",
+    "pages/result/index",
+    "pages/about/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#8B4513",
-    "navigationBarTitleText": "八字分析",
+    "navigationBarBackgroundColor": "#2D6A4F",
+    "navigationBarTitleText": "八字便利店",
     "navigationBarTextStyle": "white"
   }
 }

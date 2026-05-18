@@ -1,29 +1,26 @@
 <view class="container">
-  <view class="title">八字分析</view>
-  <view class="form">
-    <view class="form-item">
-      <text>生日</text>
-      <picker mode="date" bindchange="onBirthdayChange">
-        <view class="picker">{{birthday || '请选择生日'}}</view>
-      </picker>
+  <view class="card" style="text-align:center;">
+    <view style="font-size:72rpx;margin-bottom:20rpx;">☯️</view>
+    <view style="font-size:52rpx;font-weight:bold;color:#2D6A4F;margin-bottom:12rpx;">八字便利店</view>
+    <view style="font-size:28rpx;color:#888888;">传统干支文化学习工具</view>
+    <view style="margin-top:40rpx;padding:0 20rpx;">
+      <button class="btn-primary" bindtap="goForm">开始分析</button>
+      <button class="btn-secondary" bindtap="goAbout">关于项目</button>
     </view>
-    <view class="form-item">
-      <text>时辰</text>
-      <picker mode="selector" range="{{hours}}" bindchange="onHourChange">
-        <view class="picker">{{hours[hourIndex] || '请选择时辰'}}</view>
-      </picker>
+  </view>
+
+  <view class="card">
+    <view style="font-size:26rpx;color:#666666;line-height:1.9;">
+      <view style="margin-bottom:16rpx;font-weight:500;color:#2D6A4F;">使用说明</view>
+      <view>1. 点击「开始分析」填写信息</view>
+      <view>2. 系统将基于传统干支五行理论</view>
+      <view>3. 提供文化学习参考内容</view>
+      <view>4. 结果仅供娱乐与学习参考</view>
     </view>
-    <view class="form-item">
-      <text>性别</text>
-      <radio-group bindchange="onGenderChange">
-        <label><radio value="男" checked="{{gender==='男'}}"/>男</label>
-        <label><radio value="女" checked="{{gender==='女'}}"/>女</label>
-      </radio-group>
-    </view>
-    <view class="form-item">
-      <text>出生地</text>
-      <input placeholder="选填，如：北京" value="{{location}}" bindinput="onLocationInput" />
-    </view>
-    <button type="primary" bindtap="submit">开始分析</button>
+  </view>
+
+  <view class="disclaimer-text">
+    本工具仅供传统干支文化学习与娱乐参考<br/>
+    不构成医疗、投资、婚姻、职业等现实决策依据
   </view>
 </view>

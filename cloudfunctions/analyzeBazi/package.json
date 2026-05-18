@@ -1,7 +1,9 @@
 {
   "name": "analyzeBazi",
   "version": "1.0.0",
-  "description": "八字分析云函数",
+  "description": "Bazi analysis cloud function",
   "main": "index.js",
-  "dependencies": {}
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
 }

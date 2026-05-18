@@ -1,0 +1,9 @@
+.disclaimer-wrapper {
+  padding: 24rpx 20rpx;
+  text-align: center;
+}
+.disclaimer-text {
+  font-size: 22rpx;
+  color: #999999;
+  line-height: 1.8;
+}

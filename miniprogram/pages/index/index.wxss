@@ -1,7 +1,1 @@
-.container { padding: 40rpx; }
-.title { font-size: 48rpx; text-align: center; margin-bottom: 60rpx; font-weight: bold; }
-.form { }
-.form-item { margin-bottom: 40rpx; }
-.form-item text { display: block; margin-bottom: 10rpx; font-size: 32rpx; }
-.picker, input { border: 1px solid #ccc; padding: 20rpx; border-radius: 8rpx; }
-button { margin-top: 60rpx; }
+/* index 页面样式 - 复用全局 */

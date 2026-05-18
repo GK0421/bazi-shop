@@ -1,0 +1,4 @@
+<view class="report-card">
+  <view wx:if="{{title}}" class="card-title">{{title}}</view>
+  <view class="card-content"><slot/></view>
+</view>
