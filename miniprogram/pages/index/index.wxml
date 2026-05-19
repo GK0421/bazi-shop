@@ -1,19 +1,22 @@
 <view class="page index-page">
   <view class="hero-card shop-card">
-    <view class="shop-sign">文化小铺</view>
-    <view class="title">八字便利店</view>
-    <view class="subtitle">传统干支文化学习工具</view>
-    <view class="body-text">
-      用轻松一点的方式了解生日、时辰与传统干支文化里的常见说法。
+    <view class="tag-row">
+      <text class="note-tag">轻量国风</text>
+      <text class="note-tag gold">文化小报告</text>
     </view>
-    <button class="primary-button" bindtap="goForm">开始体验</button>
-    <button class="secondary-button" bindtap="goAbout">关于项目</button>
+    <view class="title">八字便利店</view>
+    <view class="subtitle">把出生时间整理成一份传统干支文化小报告</view>
+    <view class="body-text">
+      输入生日和时间，看看干支、五行和传统文化解释如何描述你的时间信息。
+    </view>
+    <button class="primary-button" bindtap="goForm">开始生成</button>
+    <button class="secondary-button" bindtap="goAbout">了解项目</button>
   </view>
 
   <view class="soft-card">
-    <view class="section-title">使用说明</view>
+    <view class="section-title">小小提示</view>
     <view class="body-text">
-      输入信息后，云函数会生成一份文化学习说明。若云开发或云函数暂不可用，页面会显示提示，不会空白卡住。
+      这里只做传统文化概念说明。页面会在云函数暂不可用时给出提示，不会空白卡住。
     </view>
   </view>
 

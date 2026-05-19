@@ -10,25 +10,13 @@
 .shop-card::after {
   content: "";
   position: absolute;
-  right: -54rpx;
-  top: -54rpx;
-  width: 170rpx;
-  height: 170rpx;
+  right: -40rpx;
+  top: -40rpx;
+  width: 150rpx;
+  height: 150rpx;
   border-radius: 999rpx;
-  background: #f2c14e;
-  opacity: 0.45;
-}
-
-.shop-sign {
-  display: inline-block;
-  margin-bottom: 26rpx;
-  padding: 12rpx 22rpx;
-  border: 3rpx solid #0f5d57;
-  border-radius: 999rpx;
-  background: #f2c14e;
-  color: #153f3a;
-  font-size: 26rpx;
-  font-weight: 800;
+  background: #ffe0a1;
+  opacity: 0.7;
 }
 
 .footer-note {

@@ -4,10 +4,29 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const oldMiniMaxUrl = 'https://api.' + 'minimax.chat/v1';
 const secretToken = 'sk' + '-';
+const llmApiKeyAssignment = 'LLM_API_KEY' + '=';
+const sampleText = 'Hello ' + 'World';
 const sensitiveNames = [
   'TENCENTCLOUD_' + 'SECRET',
   'SECRET' + 'KEY',
   'SESSION' + 'TOKEN'
+];
+const riskyPhrases = [
+  '算命' + '大师',
+  '改' + '运',
+  '发' + '财',
+  '死亡' + '预测',
+  '疾病' + '判断',
+  '灾祸' + '判断',
+  '姻缘' + '必成',
+  '精准' + '预测',
+  '改变' + '命运',
+  '转' + '运',
+  '开' + '运',
+  '破解' + '灾厄',
+  '趋吉' + '避凶',
+  '投资' + '建议',
+  '医疗' + '建议'
 ];
 const mojibakeMarkers = [
   '鍏',
@@ -82,6 +101,7 @@ check('project.config.json路径正确', () => {
   const config = readJson('project.config.json');
   if (config.miniprogramRoot !== 'miniprogram/') return 'miniprogramRoot应为miniprogram/';
   if (config.cloudfunctionRoot !== 'cloudfunctions/') return 'cloudfunctionRoot应为cloudfunctions/';
+  if (config.compileType !== 'miniprogram') return 'compileType应为miniprogram';
   return true;
 });
 
@@ -120,9 +140,9 @@ check('app.json中所有页面文件存在', () => {
 
 check('cloudfunctions/analyzeBazi/index.js存在', () => exists('cloudfunctions/analyzeBazi/index.js'));
 
-check('analyzeBazi不含Hello World', () => {
+check('analyzeBazi不含默认示例文本', () => {
   const content = readText('cloudfunctions/analyzeBazi/index.js');
-  return !content.includes('Hello World') || '发现Hello World';
+  return !content.includes(sampleText) || '发现默认示例文本';
 });
 
 check('不含旧MiniMax地址', () => {
@@ -153,6 +173,7 @@ check('不含明文密钥或云密钥标记', () => {
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8');
     if (content.includes(secretToken)) return path.relative(root, file);
+    if (content.includes(llmApiKeyAssignment)) return path.relative(root, file);
 
     for (const name of sensitiveNames) {
       if (content.includes(name)) return path.relative(root, file);
@@ -167,9 +188,27 @@ check('不含process.env全量打印', () => {
   return !/console\.(log|info|warn|error)\s*\(\s*process\.env\s*\)/.test(content) || '发现process.env打印';
 });
 
-check('不含console.log(context)', () => {
+check('不含context直接输出', () => {
   const content = readText('cloudfunctions/analyzeBazi/index.js');
   return !/console\.log\s*\(\s*context\s*\)/.test(content) || '发现context打印';
+});
+
+check('小程序与云函数文案不含高风险表达', () => {
+  const files = [
+    ...collectFiles('miniprogram', (file) => /\.(js|wxml|json)$/.test(file)),
+    ...collectFiles('cloudfunctions', (file) => file.endsWith('.js'))
+  ];
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    for (const phrase of riskyPhrases) {
+      if (content.includes(phrase)) {
+        return `${path.relative(root, file)} 含 ${phrase}`;
+      }
+    }
+  }
+
+  return true;
 });
 
 check('小程序WXML标签未损坏', () => {

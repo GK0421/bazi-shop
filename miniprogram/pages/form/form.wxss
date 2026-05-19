@@ -7,9 +7,10 @@
 .gender-chip {
   min-height: 72rpx;
   padding: 16rpx 20rpx;
-  border: 3rpx solid #8bb8a8;
+  border: 2rpx solid #d8e4d7;
   border-radius: 999rpx;
   background: #ffffff;
   color: #153f3a;
   font-size: 28rpx;
+  box-shadow: 0 8rpx 18rpx rgba(33, 76, 68, 0.08);
 }

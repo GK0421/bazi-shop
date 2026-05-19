@@ -1,7 +1,11 @@
 <view class="page">
   <view class="hero-card">
-    <view class="title">填写小票</view>
-    <view class="subtitle">只需要基础信息，生成一份传统干支文化学习说明。</view>
+    <view class="tag-row">
+      <text class="note-tag">本次生成</text>
+      <text class="note-tag gold">不收集详细住址</text>
+    </view>
+    <view class="title">填写你的出生时间</view>
+    <view class="subtitle">信息只用于生成本次文化说明，不收集身份证、手机号和详细住址。</view>
   </view>
 
   <view class="soft-card">

@@ -1,13 +1,17 @@
 <view class="page">
   <view class="hero-card">
-    <view class="title">关于项目</view>
-    <view class="subtitle">八字便利店是一个传统干支文化学习工具。</view>
+    <view class="tag-row">
+      <text class="note-tag">开源学习</text>
+      <text class="note-tag gold">合规展示</text>
+    </view>
+    <view class="title">关于八字便利店</view>
+    <view class="subtitle">这是一个传统干支文化学习工具，基于开源 bazi-skill 资料进行小程序化改造，用于展示干支、五行等传统文化概念的解释方式。</view>
   </view>
 
   <view class="soft-card">
     <view class="section-title">项目来源</view>
     <view class="body-text">
-      本项目用于演示微信小程序、云函数和大模型服务的基础串联流程，重点是让页面能稳定打开、表单能提交、结果能清晰展示。
+      项目把传统文化概念整理成手机端可阅读的小卡片，用更轻松的方式展示时间信息。
     </view>
   </view>
 

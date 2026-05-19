@@ -15,7 +15,7 @@
 | 閿欒澶勭悊 | 鉁?PASS | 0 |
 | 鍚堣锛堢姝㈣瘝锛?| 鉁?PASS | 0 |
 | Git 鍗敓 | 鉁?PASS | 0 |
-| Hello World 娈嬬暀 | 鉁?PASS | 0 |
+| 默认示例文本 娈嬬暀 | 鉁?PASS | 0 |
 | package.json 绮剧畝 | 鉁?PASS | 0 |
 
 **缁煎悎璇勭骇**锛氣渽 **APPROVED 鈥?鍙悎骞?*
@@ -24,7 +24,7 @@
 
 ## 浜屻€佸畨鍏ㄥ鏌?
 ### 2.1 API Keys / Secrets 妫€鏌?
-**妫€鏌ユ柟娉?*锛歚grep -E 'API Key正则|LLM_API_KEY=|腾讯云敏感变量名'` 鍏ㄤ粨搴撴壂鎻?
+**妫€鏌ユ柟娉?*锛歚grep -E 'API Key正则|LLM_API_KEY（云函数环境变量）|腾讯云敏感变量名'` 鍏ㄤ粨搴撴壂鎻?
 **缁撴灉**锛氣渽 鏃犳硠闇?
 | 鏂囦欢 | 鍖归厤鍐呭 | 鎬ц川 |
 |------|---------|------|
@@ -301,7 +301,7 @@ function buildSystemPrompt() {
 | 閿欒澶勭悊 | 鉁?PASS | 澶氬眰闃插尽锛屽厹搴曟枃妗堝畬鍠?|
 | 鍚堣 | 鉁?PASS | BANNED_PATTERNS + System Prompt + 鍏嶈矗澹版槑涓夐噸闃叉姢 |
 | Git 鍗敓 | 鉁?PASS | .gitignore 姝ｇ‘锛屾棤绉樺瘑鎻愪氦 |
-| Hello World | 鉁?PASS | 鏃犳畫鐣?|
+| 默认示例文本 | 鉁?PASS | 鏃犳畫鐣?|
 | package.json | 鉁?PASS | 鏈€灏忎緷璧栵紝绗﹀悎瑙勮寖 |
 
 **PR #1 鍙樻洿鍐呭**锛氬叓瀛楀垎鏋愪簯鍑芥暟 + 灏忕▼搴忓墠绔〉闈㈡惌寤猴紝鎵€鏈夊鏌ラ」鍧囬€氳繃銆?
@@ -310,5 +310,6 @@ function buildSystemPrompt() {
 *瀹℃煡宸ュ叿锛歡rep, node scripts/check-project.js, 浜哄伐浠ｇ爜瀹℃煡*  
 *瀹℃煡浜猴細Hermes Codex Agent*  
 *瀹℃煡鏃堕棿锛?026-05-19*
+
 
 

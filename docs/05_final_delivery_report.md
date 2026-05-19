@@ -110,6 +110,7 @@
 ## 鍏€佷笉鍖呭惈鐨勫唴瀹癸紙瀹夊叏鎵胯锛?
 - 鉂?鏃?API Key锛堝潎閫氳繃 process.env锛?- 鉂?鏃?.env.local 鏂囦欢
 - 鉂?鏃?project.private.config.json
-- 鉂?鏃犲井淇＄瀵嗛厤缃?- 鉂?鏃?Hello World 娈嬬暀
+- 鉂?鏃犲井淇＄瀵嗛厤缃?- 鉂?鏃?默认示例文本 娈嬬暀
 - 鉂?鏃?console.log(process.env / apiKey / context)
 - 鉂?鏃犵姝㈣瘝姹囷紙绠楀懡澶у笀 / 鏀硅繍 / 鍙戣储 / 鐤剧梾 / 姝讳骸 / 鐏剧ジ / 濠氭亱蹇呯劧 / 鎶曡祫寤鸿 / 鍖荤枟寤鸿锛?
+

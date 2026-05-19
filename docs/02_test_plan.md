@@ -21,7 +21,7 @@ node scripts/check-project.js
 | 4 | cloudfunctions/analyzeBazi/index.js 瀛樺湪 | true |
 | 5 | cloudfunctions/analyzeBazi/package.json 瀛樺湪 | true |
 | 6 | 鎵€鏈?.js 鏂囦欢涓嶅惈 API Key占位 瀛楃涓?| 0 澶?|
-| 7 | 鎵€鏈?.js 鏂囦欢涓嶅惈 LLM_API_KEY=云函数环境变量 | 0 澶?|
+| 7 | 鎵€鏈?.js 鏂囦欢涓嶅惈 LLM_API_KEY（云函数环境变量） | 0 澶?|
 | 8 | 鎵€鏈?.js 鏂囦欢涓嶅惈 腾讯云敏感变量名 | 0 澶?|
 | 9 | .gitignore 鍖呭惈 .env | true |
 | 10 | .gitignore 鍖呭惈 project.private.config | true |
@@ -87,3 +87,4 @@ node scripts/check-project.js
 
 ## 鍥涖€佸井淇″紑鍙戣€呭伐鍏锋墜鍔ㄦ祴璇?
 璇﹁ `docs/03_manual_acceptance.md`
+

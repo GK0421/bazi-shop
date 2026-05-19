@@ -64,7 +64,7 @@ cloudfunctions/analyzeBazi/
 - 閿欒鐮佽鑼冿細ok: false + report.title 璇存槑閿欒绫诲瀷
 - BANNED_PATTERNS 鍚堣杩囨护
 - 涓嶆墦鍗颁换浣曠幆澧冨彉閲?/ API Key / context 瀹屾暣瀵硅薄
-- 鏃?Hello World
+- 鏃?默认示例文本
 - package.json 鍙湁 wx-server-sdk
 
 ### WARN - 鍓嶇/浜戝嚱鏁扮粨鏋勪笉鍖归厤
@@ -97,11 +97,11 @@ if (res.result.success) {           // WRONG - 浜戝嚱鏁拌繑鍥?ok锛屼笉
 | 妫€鏌ラ」 | 缁撴灉 |
 |--------|------|
 | APIKEY- 鍑虹幇鍦ㄤ唬鐮佷腑 | 0 澶?- OK |
-| LLM_API_KEY= 鍑虹幇鍦ㄤ唬鐮佷腑 | 0 澶?- OK |
+| LLM_API_KEY（云函数环境变量） 鍑虹幇鍦ㄤ唬鐮佷腑 | 0 澶?- OK |
 | 腾讯云敏感变量名 | 0 澶?- OK |
 | project.private.config.json 鎻愪氦 | 鍚?- OK |
 | .env.local 鎻愪氦 | 鍚?- OK |
-| Hello World | 0 澶?- OK |
+| 默认示例文本 | 0 澶?- OK |
 | context logging check | 0 澶?- OK |
 
 ---
@@ -142,3 +142,4 @@ if (res.result.success) {           // WRONG - 浜戝嚱鏁拌繑鍥?ok锛屼笉
 **涓嶉渶瑕佷慨澶?*锛?- 浜戝嚱鏁版牳蹇冮€昏緫锛堣壇濂斤級
 - 瀹夊叏閰嶇疆锛堣壇濂斤級
 - Git 閰嶇疆锛堣壇濂斤級
+
