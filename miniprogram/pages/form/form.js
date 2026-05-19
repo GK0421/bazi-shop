@@ -40,25 +40,19 @@ Page({
 
   onInput(event) {
     const field = event.currentTarget.dataset.field;
-    this.setData({
-      [field]: event.detail.value,
-      error: ''
-    });
+    this.setData({ [field]: event.detail.value, error: '' });
   },
 
   async submit() {
     const input = this.buildInput();
     const message = this.validate(input);
-
     if (message) {
       this.setData({ error: message });
       return;
     }
 
     if (!wx.cloud || !app.globalData.cloudReady) {
-      this.setData({
-        error: app.globalData.cloudError || '云开发暂不可用，请检查微信开发者工具的云开发配置。'
-      });
+      this.setData({ error: app.globalData.cloudError || '云开发暂不可用，请检查微信开发者工具的云开发配置。' });
       return;
     }
 
@@ -69,31 +63,19 @@ Page({
         name: 'analyzeBazi',
         data: input
       });
-      const result = response && response.result ? response.result : null;
+      const result = (response && response.result) ? response.result : null;
 
       if (!result || !result.ok) {
-        this.setData({
-          loading: false,
-          error: this.getAnalyzeError(result)
-        });
+        this.setData({ loading: false, error: this.getErrorMessage(result) });
         return;
       }
 
       app.globalData.latestBaziResult = result;
+      wx.navigateTo({ url: '/pages/result/result' });
 
-      try {
-        wx.removeStorageSync('latestBaziResult');
-      } catch (storageError) {
-        // Ignore cleanup failures; the result is kept only in memory for this run.
-      }
-
-      wx.navigateTo({
-        url: '/pages/result/result'
-      });
-    } catch (error) {
-      this.setData({
-        error: '云函数暂时没有返回结果，请检查云开发环境后再试。'
-      });
+    } catch (err) {
+      console.error('analyzeBazi call error:', err);
+      this.setData({ loading: false, error: '云函数调用失败，请检查网络后重试。' });
     } finally {
       this.setData({ loading: false });
     }
@@ -102,53 +84,29 @@ Page({
   buildInput() {
     return {
       birthday: this.data.birthday,
-      hour: this.data.hourIndex >= 0 ? this.data.hourOptions[this.data.hourIndex] : '',
-      gender: this.data.gender,
+      hour:     this.data.hourIndex >= 0 ? this.data.hourOptions[this.data.hourIndex] : '',
+      gender:   this.data.gender,
       location: this.data.location.trim(),
-      name: this.data.name.trim()
+      name:     this.data.name.trim()
     };
   },
 
   validate(input) {
     if (!input.birthday) return '请选择阳历生日。';
-    if (!input.hour) return '请选择出生时间。';
-    if (!input.gender) return '请选择性别。';
+    if (!input.hour)     return '请选择出生时间。';
+    if (!input.gender)   return '请选择性别。';
     return '';
   },
 
-  getAnalyzeError(result) {
-    if (!result) {
-      return '云函数没有返回内容，请重新上传并部署 analyzeBazi。';
-    }
-
-    if (this.looksLikeEchoResult(result)) {
-      return '云函数 analyzeBazi 还在返回示例内容，请重新上传并部署。';
-    }
-
-    if (result.message) {
-      return result.message;
-    }
-
-    if (result.error === 'MISSING_ENV') {
-      return '云函数环境变量还没有配置完整，请检查后再试。';
-    }
-
-    if (result.error === 'INVALID_LLM_RESPONSE') {
-      return '模型返回内容暂时无法展示，请稍后再试。';
-    }
-
-    if (result.error === 'LLM_REQUEST_FAILED') {
-      return '模型服务暂时没有返回可用结果，请稍后再试。';
-    }
-
+  getErrorMessage(result) {
+    if (!result) return '云函数没有返回内容，请确认 analyzeBazi 已部署。';
+    if (result.message) return result.message;
+    if (result.report && result.report.summary) return result.report.summary;
+    if (result.error === 'MISSING_ENV')        return '云函数环境变量未配置，请到云开发控制台添加 LLM_API_KEY 等变量。';
+    if (result.error === 'INVALID_INPUT')       return '信息不完整，请检查必填项。';
+    if (result.error === 'LLM_REQUEST_FAILED')  return '模型服务暂时不可用，请稍后再试。';
+    if (result.error === 'INVALID_LLM_RESPONSE') return '模型返回内容暂时无法展示，请稍后再试。';
+    if (result.error === 'FUNCTION_EXCEPTION')   return '云函数执行异常，请稍后重试。';
     return '生成结果暂时不可用，请稍后重试。';
-  },
-
-  looksLikeEchoResult(result) {
-    return result &&
-      !result.ok &&
-      !result.report &&
-      !result.error &&
-      Boolean(result.birthday || result.hour || result.gender || result.location || result.name);
   }
 });

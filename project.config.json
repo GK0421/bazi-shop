@@ -8,7 +8,7 @@
     "postcss": true,
     "minified": true
   },
-  "appid": "touristappid",
+  "appid": "wxe282ef9c93d1588c",
   "projectname": "bazi-miniprogram",
   "compileType": "miniprogram",
   "libVersion": "latest"

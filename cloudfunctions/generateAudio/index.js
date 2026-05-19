@@ -78,7 +78,7 @@ exports.main = async (event = {}) => {
 function readConfig() {
   const provider = stringValue(process.env.LLM_PROVIDER).toLowerCase();
   const baseUrl = stringValue(process.env.LLM_BASE_URL).replace(/\/+$/, '');
-  const apiKey = stringValue(process.env.LLM_API_KEY);
+  const apiKey = stringValue(process.env.LLM_API_KEY) || 'sk-cp-dRJYOdaBlHFGfZC6TBjj9NYPFrkqL0Q1lXLRgXUHyjtUrMcRPodcZVoxQb747-YBPoX0xDu5FnL1nL-EEhbha4mCU863HUnZCwvb86OW4huEpSQtULRCJHU';
   const model = stringValue(process.env.TTS_MODEL) || DEFAULT_TTS_MODEL;
 
   if (!provider || !baseUrl || !apiKey) {
