@@ -161,7 +161,25 @@ function postJson(url, body, apiKey) {
 function getMessageText(body) {
   const choice = body && Array.isArray(body.choices) ? body.choices[0] : null;
   const message = choice && choice.message ? choice.message : null;
-  return message && message.content ? String(message.content).trim() : '';
+  if (!message || !message.content) return '';
+
+  if (typeof message.content === 'string') {
+    return message.content.trim();
+  }
+
+  if (Array.isArray(message.content)) {
+    return message.content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part.text === 'string') return part.text;
+        if (part && typeof part.content === 'string') return part.content;
+        return '';
+      })
+      .join('')
+      .trim();
+  }
+
+  return String(message.content).trim();
 }
 
 function parseReport(text) {
@@ -189,18 +207,76 @@ function parseReport(text) {
 function parseJson(text) {
   if (!text) return null;
 
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-
+  const candidates = buildJsonCandidates(text);
+  for (const candidate of candidates) {
     try {
-      return JSON.parse(match[0]);
-    } catch (innerError) {
-      return null;
+      return JSON.parse(candidate);
+    } catch (error) {
+      // Try the next candidate.
     }
   }
+
+  return null;
+}
+
+function buildJsonCandidates(text) {
+  const cleaned = String(text)
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  const candidates = [cleaned];
+  const fenced = String(text).match(/```(?:json)?\s*([\s\S]*?)```/i);
+
+  if (fenced && fenced[1]) {
+    candidates.push(fenced[1].trim());
+  }
+
+  const balanced = extractBalancedJson(cleaned);
+  if (balanced) {
+    candidates.push(balanced);
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function extractBalancedJson(text) {
+  const start = text.indexOf('{');
+  if (start < 0) return '';
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (char === '{') depth += 1;
+    if (char === '}') depth -= 1;
+
+    if (depth === 0) {
+      return text.slice(start, index + 1);
+    }
+  }
+
+  return '';
 }
 
 function cleanText(value) {

@@ -74,7 +74,7 @@ Page({
       if (!result || !result.ok) {
         this.setData({
           loading: false,
-          error: result && result.message ? result.message : '暂时没有生成结果，请稍后再试。'
+          error: this.getAnalyzeError(result)
         });
         return;
       }
@@ -114,5 +114,41 @@ Page({
     if (!input.hour) return '请选择出生时间。';
     if (!input.gender) return '请选择性别。';
     return '';
+  },
+
+  getAnalyzeError(result) {
+    if (!result) {
+      return '云函数没有返回内容，请重新上传并部署 analyzeBazi。';
+    }
+
+    if (this.looksLikeEchoResult(result)) {
+      return '云函数 analyzeBazi 还在返回示例内容，请重新上传并部署。';
+    }
+
+    if (result.message) {
+      return result.message;
+    }
+
+    if (result.error === 'MISSING_ENV') {
+      return '云函数环境变量还没有配置完整，请检查后再试。';
+    }
+
+    if (result.error === 'INVALID_LLM_RESPONSE') {
+      return '模型返回内容暂时无法展示，请稍后再试。';
+    }
+
+    if (result.error === 'LLM_REQUEST_FAILED') {
+      return '模型服务暂时没有返回可用结果，请稍后再试。';
+    }
+
+    return '生成结果暂时不可用，请稍后重试。';
+  },
+
+  looksLikeEchoResult(result) {
+    return result &&
+      !result.ok &&
+      !result.report &&
+      !result.error &&
+      Boolean(result.birthday || result.hour || result.gender || result.location || result.name);
   }
 });
