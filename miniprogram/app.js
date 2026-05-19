@@ -1,7 +1,8 @@
 App({
   globalData: {
     cloudReady: false,
-    cloudError: ''
+    cloudError: '',
+    latestBaziResult: null
   },
 
   onLaunch() {

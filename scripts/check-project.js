@@ -9,6 +9,22 @@ const sensitiveNames = [
   'SECRET' + 'KEY',
   'SESSION' + 'TOKEN'
 ];
+const mojibakeMarkers = [
+  '鍏',
+  '鏆',
+  '璇',
+  '浜',
+  '涓',
+  '鐢',
+  '闃',
+  '濉',
+  '鎻',
+  '鍑',
+  '鏂',
+  '骞',
+  '澹',
+  '濞'
+];
 
 let failed = 0;
 
@@ -154,6 +170,35 @@ check('不含process.env全量打印', () => {
 check('不含console.log(context)', () => {
   const content = readText('cloudfunctions/analyzeBazi/index.js');
   return !/console\.log\s*\(\s*context\s*\)/.test(content) || '发现context打印';
+});
+
+check('小程序WXML标签未损坏', () => {
+  const files = collectFiles('miniprogram', (file) => file.endsWith('.wxml'));
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    if (/\?\s*\/(view|text|button|label|radio|picker)>/.test(content)) {
+      return path.relative(root, file);
+    }
+  }
+
+  return true;
+});
+
+check('小程序与云函数文案未乱码', () => {
+  const files = [
+    ...collectFiles('miniprogram', (file) => /\.(js|wxml|json)$/.test(file)),
+    ...collectFiles('cloudfunctions', (file) => file.endsWith('.js'))
+  ];
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    for (const marker of mojibakeMarkers) {
+      if (content.includes(marker)) return path.relative(root, file);
+    }
+  }
+
+  return true;
 });
 
 if (failed > 0) {

@@ -13,7 +13,7 @@
   <view class="soft-card">
     <view class="section-title">使用说明</view>
     <view class="body-text">
-      输入信息后，云函数会请求大模型生成一份文化学习说明。若云开发或云函数暂不可用，页面会显示提示，不会空白卡住。
+      输入信息后，云函数会生成一份文化学习说明。若云开发或云函数暂不可用，页面会显示提示，不会空白卡住。
     </view>
   </view>
 

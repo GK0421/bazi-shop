@@ -79,8 +79,11 @@ Page({
         return;
       }
 
+      app.globalData.latestBaziResult = result;
+      wx.setStorageSync('latestBaziResult', result);
+
       wx.navigateTo({
-        url: `/pages/result/result?payload=${encodeURIComponent(JSON.stringify(result))}`
+        url: '/pages/result/result'
       });
     } catch (error) {
       this.setData({
