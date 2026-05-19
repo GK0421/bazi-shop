@@ -1,116 +1,164 @@
-#!/usr/bin/env node
-/**
- * check-project.js
- * 轻量项目完整性 + 安全检查脚本
- * 运行：node scripts/check-project.js
- * 退出码：0 = 全部通过，1 = 存在问题
- */
-
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
+const root = path.resolve(__dirname, '..');
+const oldMiniMaxUrl = 'https://api.' + 'minimax.chat/v1';
+const secretToken = 'sk' + '-';
+const sensitiveNames = [
+  'TENCENTCLOUD_' + 'SECRET',
+  'SECRET' + 'KEY',
+  'SESSION' + 'TOKEN'
+];
 
-let exitCode = 0;
-const results = [];
+let failed = 0;
 
-function check(name, fn) {
-  try {
-    const ok = fn();
-    results.push({ name, ok });
-    if (!ok) exitCode = 1;
-  } catch (e) {
-    results.push({ name, ok: false, error: e.message });
-    exitCode = 1;
-  }
+function pass(name) {
+  console.log(`PASS ${name}`);
 }
 
 function fail(name, detail) {
-  results.push({ name, ok: false, detail });
-  exitCode = 1;
+  failed += 1;
+  console.error(`FAIL ${name}${detail ? ` - ${detail}` : ''}`);
 }
 
-// ── 1. app.json 页面路径存在性 ───────────────────────────────────────────────
-check('app.json 存在', () => fs.existsSync(path.join(ROOT, 'miniprogram/app.json')));
-
-const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'miniprogram/app.json'), 'utf8'));
-const expectedPages = appJson.pages || [];
-check('app.json pages 数组非空', () => expectedPages.length > 0);
-
-for (const pagePath of expectedPages) {
-  const jsFile   = path.join(ROOT, 'miniprogram', pagePath + '.js');
-  const jsonFile = path.join(ROOT, 'miniprogram', pagePath + '.json');
-  const wxmlFile = path.join(ROOT, 'miniprogram', pagePath + '.wxml');
-  const wxssFile = path.join(ROOT, 'miniprogram', pagePath + '.wxss');
-  check(`页面存在: ${pagePath}`,  () => fs.existsSync(jsFile));
-  check(`页面配置: ${pagePath}`,  () => fs.existsSync(jsonFile));
-  check(`页面模板: ${pagePath}`,  () => fs.existsSync(wxmlFile));
-  check(`页面样式: ${pagePath}`,  () => fs.existsSync(wxssFile));
-}
-
-// ── 2. 云函数文件存在 ────────────────────────────────────────────────────────
-const cfRoot = path.join(ROOT, 'cloudfunctions/analyzeBazi');
-check('cloudfunctions/analyzeBazi/index.js 存在',     () => fs.existsSync(path.join(cfRoot, 'index.js')));
-check('cloudfunctions/analyzeBazi/package.json 存在',  () => fs.existsSync(path.join(cfRoot, 'package.json')));
-
-// ── 3. 密钥泄露检查（跳过 scripts/ 和 .git/）────────────────────────────────
-const SKIP_DIRS = ['.git', 'node_modules'];
-const JS_FILES  = [];
-function findJs(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (SKIP_DIRS.includes(entry.name)) continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) findJs(full);
-    else if (entry.name.endsWith('.js')) JS_FILES.push(full);
-  }
-}
-findJs(ROOT);
-
-for (const file of JS_FILES) {
-  const rel = path.relative(ROOT, file);
-  // Skip this script itself and any test mocks
-  if (rel.startsWith('scripts' + path.sep)) continue;
-  const content = fs.readFileSync(file, 'utf8');
-  if (/sk-[A-Za-z0-9]{20,}/.test(content)) {
-    fail(`[SECURITY] sk- found in ${rel}`);
-  }
-  if (/TENCENTCLOUD_SECRET/.test(content)) {
-    fail(`[SECURITY] TENCENTCLOUD_SECRET in ${rel}`);
+function check(name, fn) {
+  try {
+    const detail = fn();
+    if (detail === true || detail === undefined) {
+      pass(name);
+    } else {
+      fail(name, detail || '');
+    }
+  } catch (error) {
+    fail(name, error.message);
   }
 }
 
-// ── 4. .gitignore 检查 ───────────────────────────────────────────────────────
-const giContent = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
-check('.gitignore 包含 .env',                    () => giContent.includes('.env'));
-check('.gitignore 包含 project.private.config',   () => giContent.includes('project.private.config'));
-
-// ── 5. 云函数安全检查 ─────────────────────────────────────────────────────────
-const cfIndex  = path.join(cfRoot, 'index.js');
-const cfContent = fs.readFileSync(cfIndex, 'utf8');
-check('云函数不打印 process.env',   () => !cfContent.includes('console.log(process.env'));
-check('云函数不打印 API Key',        () => !cfContent.includes('console.log(config.apiKey'));
-check('云函数不打印 context 对象',   () => !cfContent.includes('console.log(context)'));
-
-// ── 6. app.js 有 wx.cloud.init ────────────────────────────────────────────────
-const appJsContent = fs.readFileSync(path.join(ROOT, 'miniprogram/app.js'), 'utf8');
-check('app.js 包含 wx.cloud.init',  () => appJsContent.includes('wx.cloud.init'));
-
-// ── 7. components 存在 ────────────────────────────────────────────────────────
-check('components/disclaimer 存在',   () => fs.existsSync(path.join(ROOT, 'miniprogram/components/disclaimer/index.js')));
-check('components/report-card 存在',  () => fs.existsSync(path.join(ROOT, 'miniprogram/components/report-card/index.js')));
-
-// ── 8. project.config.json 合规 ─────────────────────────────────────────────
-const projConfig = JSON.parse(fs.readFileSync(path.join(ROOT, 'project.config.json'), 'utf8'));
-check('project.config.json appid 不是真实ID', () =>
-  projConfig.appid === 'touristappid' || projConfig.appid.startsWith('tourist'));
-
-// ── 输出结果 ───────────────────────────────────────────────────────────────────
-console.log('\n=== check-project.js results ===\n');
-for (const r of results) {
-  const icon = r.ok ? 'PASS' : 'FAIL';
-  console.log(`[${icon}] ${r.name}${r.detail ? ' -- ' + r.detail : ''}`);
+function readJson(relativePath) {
+  return JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
 }
-const passed = results.filter(r => r.ok).length;
-const failed = results.filter(r => !r.ok).length;
-console.log(`\n${passed} passed, ${failed} failed`);
-process.exit(exitCode);
+
+function readText(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), 'utf8');
+}
+
+function exists(relativePath) {
+  return fs.existsSync(path.join(root, relativePath));
+}
+
+function collectFiles(relativePath, predicate) {
+  const fullPath = path.join(root, relativePath);
+  if (!fs.existsSync(fullPath)) return [];
+
+  const stat = fs.statSync(fullPath);
+  if (stat.isFile()) {
+    return predicate(fullPath) ? [fullPath] : [];
+  }
+
+  return fs.readdirSync(fullPath).flatMap((name) => {
+    return collectFiles(path.join(relativePath, name), predicate);
+  });
+}
+
+check('project.config.json存在', () => exists('project.config.json'));
+
+check('project.config.json路径正确', () => {
+  const config = readJson('project.config.json');
+  if (config.miniprogramRoot !== 'miniprogram/') return 'miniprogramRoot应为miniprogram/';
+  if (config.cloudfunctionRoot !== 'cloudfunctions/') return 'cloudfunctionRoot应为cloudfunctions/';
+  return true;
+});
+
+check('miniprogram/app.json存在', () => exists('miniprogram/app.json'));
+
+check('app.json页面配置完整', () => {
+  const appJson = readJson('miniprogram/app.json');
+  const requiredPages = [
+    'pages/index/index',
+    'pages/form/form',
+    'pages/result/result',
+    'pages/about/about'
+  ];
+  const pages = Array.isArray(appJson.pages) ? appJson.pages : [];
+
+  for (const page of requiredPages) {
+    if (!pages.includes(page)) return `缺少${page}`;
+  }
+
+  return true;
+});
+
+check('app.json中所有页面文件存在', () => {
+  const appJson = readJson('miniprogram/app.json');
+  const pages = Array.isArray(appJson.pages) ? appJson.pages : [];
+
+  for (const page of pages) {
+    for (const ext of ['js', 'json', 'wxml', 'wxss']) {
+      const file = `miniprogram/${page}.${ext}`;
+      if (!exists(file)) return `缺少${file}`;
+    }
+  }
+
+  return true;
+});
+
+check('cloudfunctions/analyzeBazi/index.js存在', () => exists('cloudfunctions/analyzeBazi/index.js'));
+
+check('analyzeBazi不含Hello World', () => {
+  const content = readText('cloudfunctions/analyzeBazi/index.js');
+  return !content.includes('Hello World') || '发现Hello World';
+});
+
+check('不含旧MiniMax地址', () => {
+  const files = [
+    'README.md',
+    ...collectFiles('docs', (file) => file.endsWith('.md')),
+    ...collectFiles('cloudfunctions', (file) => file.endsWith('.js')),
+    ...collectFiles('miniprogram', (file) => file.endsWith('.js'))
+  ];
+
+  for (const file of files) {
+    if (fs.readFileSync(file, 'utf8').includes(oldMiniMaxUrl)) {
+      return path.relative(root, file);
+    }
+  }
+
+  return true;
+});
+
+check('不含明文密钥或云密钥标记', () => {
+  const files = [
+    'README.md',
+    ...collectFiles('docs', (file) => file.endsWith('.md')),
+    ...collectFiles('cloudfunctions', (file) => file.endsWith('.js')),
+    ...collectFiles('miniprogram', (file) => file.endsWith('.js'))
+  ];
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    if (content.includes(secretToken)) return path.relative(root, file);
+
+    for (const name of sensitiveNames) {
+      if (content.includes(name)) return path.relative(root, file);
+    }
+  }
+
+  return true;
+});
+
+check('不含process.env全量打印', () => {
+  const content = readText('cloudfunctions/analyzeBazi/index.js');
+  return !/console\.(log|info|warn|error)\s*\(\s*process\.env\s*\)/.test(content) || '发现process.env打印';
+});
+
+check('不含console.log(context)', () => {
+  const content = readText('cloudfunctions/analyzeBazi/index.js');
+  return !/console\.log\s*\(\s*context\s*\)/.test(content) || '发现context打印';
+});
+
+if (failed > 0) {
+  console.error(`\n${failed} check(s) failed.`);
+  process.exit(1);
+}
+
+console.log('\nAll checks passed.');

@@ -1,0 +1,50 @@
+<view class="page">
+  <view class="hero-card">
+    <view class="title">填写小票</view>
+    <view class="subtitle">只需要基础信息，生成一份传统干支文化学习说明。</view>
+  </view>
+
+  <view class="soft-card">
+    <view class="field">
+      <text class="label">阳历生日（必填）</text>
+      <picker mode="date" value="{{birthday}}" bindchange="onBirthdayChange">
+        <view class="picker-box {{birthday ? '' : 'placeholder'}}">{{birthday || '请选择日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="label">出生时间（必填）</text>
+      <picker mode="selector" range="{{hourOptions}}" value="{{hourIndex}}" bindchange="onHourChange">
+        <view class="picker-box {{hourIndex >= 0 ? '' : 'placeholder'}}">{{hourIndex >= 0 ? hourOptions[hourIndex] : '请选择时段'}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="label">性别（必填）</text>
+      <radio-group class="gender-row" bindchange="onGenderChange">
+        <label class="gender-chip">
+          <radio value="男" checked="{{gender === '男'}}" color="#0F5D57" />男
+        </label>
+        <label class="gender-chip">
+          <radio value="女" checked="{{gender === '女'}}" color="#0F5D57" />女
+        </label>
+        <label class="gender-chip">
+          <radio value="不便填写" checked="{{gender === '不便填写'}}" color="#0F5D57" />不便填写
+        </label>
+      </radio-group>
+    </view>
+
+    <view class="field">
+      <text class="label">出生地（选填）</text>
+      <input class="input" value="{{location}}" data-field="location" bindinput="onInput" placeholder="如：杭州" placeholder-class="placeholder" />
+    </view>
+
+    <view class="field">
+      <text class="label">姓名（选填）</text>
+      <input class="input" value="{{name}}" data-field="name" bindinput="onInput" placeholder="可留空" placeholder-class="placeholder" />
+    </view>
+
+    <view wx:if="{{error}}" class="error-box">{{error}}</view>
+    <button class="primary-button" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">{{loading ? '生成中...' : '提交'}}</button>
+  </view>
+</view>

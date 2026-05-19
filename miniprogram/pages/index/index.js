@@ -1,8 +1,13 @@
 Page({
   goForm() {
-    wx.navigateTo({ url: '/pages/form/form' });
+    wx.navigateTo({
+      url: '/pages/form/form'
+    });
   },
+
   goAbout() {
-    wx.navigateTo({ url: '/pages/about/about' });
+    wx.navigateTo({
+      url: '/pages/about/about'
+    });
   }
 });

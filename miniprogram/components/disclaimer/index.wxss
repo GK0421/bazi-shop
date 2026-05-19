@@ -2,8 +2,9 @@
   padding: 24rpx 20rpx;
   text-align: center;
 }
+
 .disclaimer-text {
-  font-size: 22rpx;
-  color: #999999;
-  line-height: 1.8;
+  color: #6f756c;
+  font-size: 24rpx;
+  line-height: 1.7;
 }

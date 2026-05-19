@@ -1,17 +1,22 @@
-// 小程序全局逻辑
 App({
   globalData: {
-    cloudEnv: 'cloud1-d1gwyutj2d122bc22'
+    cloudReady: false,
+    cloudError: ''
   },
-  onLaunch: function () {
-    // 初始化云开发
+
+  onLaunch() {
     if (!wx.cloud) {
-      console.error('请使用 2.2.3 或以上的基础库以使用云能力');
-    } else {
+      this.globalData.cloudError = '当前基础库暂不支持云开发，请升级微信开发者工具或基础库。';
+      return;
+    }
+
+    try {
       wx.cloud.init({
-        env: 'cloud1-d1gwyutj2d122bc22',
-        traceUser: true,
+        env: wx.cloud.DYNAMIC_CURRENT_ENV
       });
+      this.globalData.cloudReady = true;
+    } catch (error) {
+      this.globalData.cloudError = '云开发初始化未完成，请检查开发者工具配置。';
     }
   }
 });

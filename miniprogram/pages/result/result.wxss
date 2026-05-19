@@ -1,0 +1,10 @@
+.info-line {
+  margin-top: 14rpx;
+  color: #234a45;
+  font-size: 30rpx;
+  line-height: 1.65;
+}
+
+.disclaimer-card {
+  background: #fff4d6;
+}

@@ -1,18 +1,21 @@
 .report-card {
-  background: #FFFFFF;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.06);
+  margin-bottom: 28rpx;
+  padding: 32rpx;
+  border: 4rpx solid #0f5d57;
+  border-radius: 28rpx;
+  background: #fffaf0;
+  box-shadow: 0 12rpx 0 rgba(15, 93, 87, 0.14);
 }
+
 .card-title {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: #2D6A4F;
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
+  color: #0f5d57;
+  font-size: 36rpx;
+  font-weight: 800;
 }
+
 .card-content {
+  color: #234a45;
   font-size: 30rpx;
-  color: #333333;
-  line-height: 1.8;
+  line-height: 1.75;
 }

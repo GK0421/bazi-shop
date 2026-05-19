@@ -1,1 +1,41 @@
-/* index 页面样式 - 复用全局 */
+.index-page {
+  padding-top: 56rpx;
+}
+
+.shop-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.shop-card::after {
+  content: "";
+  position: absolute;
+  right: -54rpx;
+  top: -54rpx;
+  width: 170rpx;
+  height: 170rpx;
+  border-radius: 999rpx;
+  background: #f2c14e;
+  opacity: 0.45;
+}
+
+.shop-sign {
+  display: inline-block;
+  margin-bottom: 26rpx;
+  padding: 12rpx 22rpx;
+  border: 3rpx solid #0f5d57;
+  border-radius: 999rpx;
+  background: #f2c14e;
+  color: #153f3a;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.footer-note {
+  margin-top: 36rpx;
+  padding: 0 12rpx;
+  color: #6f756c;
+  font-size: 24rpx;
+  line-height: 1.7;
+  text-align: center;
+}

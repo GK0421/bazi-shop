@@ -1,0 +1,15 @@
+.gender-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18rpx;
+}
+
+.gender-chip {
+  min-height: 72rpx;
+  padding: 16rpx 20rpx;
+  border: 3rpx solid #8bb8a8;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #153f3a;
+  font-size: 28rpx;
+}
