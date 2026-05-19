@@ -8,3 +8,33 @@
 .disclaimer-card {
   background: #fff4d6;
 }
+
+.audio-card {
+  margin: 28rpx 0;
+  padding: 28rpx;
+  border-radius: 36rpx;
+  background: #fffaf0;
+  box-shadow: 0 14rpx 36rpx rgba(111, 78, 26, 0.12);
+}
+
+.audio-button {
+  height: 88rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #e7b64f 0%, #f4cf7a 100%);
+  color: #31564e;
+  font-size: 32rpx;
+  font-weight: 700;
+  box-shadow: 0 12rpx 28rpx rgba(202, 154, 52, 0.26);
+}
+
+.audio-button[disabled] {
+  opacity: 0.72;
+}
+
+.error-text {
+  margin-top: 18rpx;
+  color: #b45b38;
+  font-size: 26rpx;
+  line-height: 1.5;
+  text-align: center;
+}

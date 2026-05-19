@@ -80,7 +80,12 @@ Page({
       }
 
       app.globalData.latestBaziResult = result;
-      wx.setStorageSync('latestBaziResult', result);
+
+      try {
+        wx.removeStorageSync('latestBaziResult');
+      } catch (storageError) {
+        // Ignore cleanup failures; the result is kept only in memory for this run.
+      }
 
       wx.navigateTo({
         url: '/pages/result/result'

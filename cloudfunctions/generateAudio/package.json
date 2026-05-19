@@ -1,0 +1,9 @@
+{
+  "name": "generateAudio",
+  "version": "1.0.0",
+  "description": "Generate short audio summary",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
