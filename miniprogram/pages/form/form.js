@@ -1,10 +1,7 @@
 const app = getApp();
-const apiConfig = require('../../utils/api-config.js');
-
-const DISCLAIMER = "本内容仅供传统干支文化学习与娱乐参考，不构成医疗、投资、婚姻、职业或其他现实决策依据。";
 
 const LOADING_TEXTS = [
-  '翻阅历书...', '查找节气...', '排布天干...',
+  '翻阅古籍...', '查找节气...', '排布天干...',
   '推演地支...', '整理五行...', '书写札记...'
 ];
 
@@ -23,7 +20,7 @@ Page({
     location: '',
     name: '',
     loading: false,
-    loadingText: '正在翻阅老黄历...',
+    loadingText: '正在翻阅古籍...',
     error: '',
     _timer: null
   },
@@ -42,57 +39,11 @@ Page({
       this.setData({ loadingText: LOADING_TEXTS[i % LOADING_TEXTS.length] });
       i++;
     }, 1800);
-    this.setData({ loadingText: '正在翻阅老黄历...', _timer: timer });
+    this.setData({ loadingText: '正在翻阅古籍...', _timer: timer });
   },
 
   stopLoadingAnimation() {
     if (this.data._timer) { clearInterval(this.data._timer); this.data._timer = null; }
-  },
-
-  buildPrompt(input) {
-    return [
-      '你是传统干支文化助手。请用简体中文直接回复，不要用JSON格式。',
-      '按以下结构分三段回复：',
-      '',
-      '【文化概述】',
-      '用50字左右从传统文化角度温和描述这个出生时间',
-      '',
-      '【干支时间解读】',
-      '用50字左右从干支、节气角度做文化学习说明',
-      '',
-      '【五行分类参考】',
-      '用50字左右从五行分类角度做文化学习说明',
-      '',
-      '重要规则：',
-      '- 不长于200字',
-      '- 不要使用一定、必定、注定、保证等确定性表达',
-      '- 不要给出发财、改运、疾病、死亡、灾祸、婚恋预测',
-      '- 内容仅供文化学习与娱乐参考',
-      '',
-      '用户信息：',
-      '生日：' + input.birthday,
-      '时辰：' + input.hour,
-      '性别：' + input.gender,
-      '出生地：' + (input.location || '未提供')
-    ].join('\n');
-  },
-
-  parseReport(text) {
-    // 去除 think 标签
-    let cleaned = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    if (!cleaned) cleaned = String(text || '').trim();
-    
-    const titleMatch = cleaned.match(/【文化概述】([\s\S]*?)(?=【|$)/);
-    const baziMatch  = cleaned.match(/【干支时间解读】([\s\S]*?)(?=【|$)/);
-    const fiveMatch  = cleaned.match(/【五行分类参考】([\s\S]*?)(?=【|$)/);
-
-    return {
-      title: '传统干支文化参考',
-      summary: (titleMatch ? titleMatch[1].trim() : cleaned.substring(0, 150).trim()) || '传统文化学习说明',
-      baziCultureNote: (baziMatch ? baziMatch[1].trim() : '干支文化常用天干、地支与节气来记录时间。') || '干支文化学习参考',
-      fiveElementsNote: (fiveMatch ? fiveMatch[1].trim() : '五行是传统文化中的分类方式。') || '五行文化学习参考',
-      disclaimer: DISCLAIMER
-    };
   },
 
   async submit() {
@@ -100,9 +51,8 @@ Page({
     const msg = this.validate(input);
     if (msg) { this.setData({ error: msg }); return; }
 
-    // 检查 API Key
-    if (!apiConfig.MINIMAX_API_KEY || apiConfig.MINIMAX_API_KEY.indexOf('PASTE') > -1) {
-      this.setData({ error: '请先在 miniprogram/utils/api-config.js 中填入 MiniMax API Key。' });
+    if (!wx.cloud || !app.globalData.cloudReady) {
+      this.setData({ error: app.globalData.cloudError || '云开发暂不可用，请在微信开发者工具中开通云开发。' });
       return;
     }
 
@@ -110,63 +60,25 @@ Page({
     this.startLoadingAnimation();
 
     try {
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: apiConfig.MINIMAX_BASE_URL + '/chat/completions',
-          method: 'POST',
-          header: {
-            'Authorization': 'Bearer ' + apiConfig.MINIMAX_API_KEY,
-            'Content-Type': 'application/json'
-          },
-          data: {
-            model: apiConfig.MINIMAX_MODEL || 'MiniMax-M2.7',
-            messages: [{ role: 'user', content: this.buildPrompt(input) }],
-            temperature: 0.5,
-            max_tokens: 400
-          },
-          timeout: 45000,
-          success: resolve,
-          fail: reject
-        });
+      const response = await wx.cloud.callFunction({
+        name: 'analyzeBazi',
+        data: input,
+        config: { timeout: 65000 }
       });
+      const result = (response && response.result) ? response.result : null;
 
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        this.setData({ loading: false, error: '模型服务暂时不可用（' + res.statusCode + '），请稍后再试。' });
+      if (!result || !result.ok) {
+        this.setData({ loading: false, error: this.getErrorMessage(result) });
         this.stopLoadingAnimation();
         return;
       }
-
-      const body = res.data;
-      const choices = body && body.choices;
-      const content = choices && choices[0] && choices[0].message && choices[0].message.content;
-      
-      if (!content) {
-        this.setData({ loading: false, error: '模型返回了空内容，请稍后再试。' });
-        this.stopLoadingAnimation();
-        return;
-      }
-
-      const report = this.parseReport(content);
-      if (!report || !report.summary) {
-        this.setData({ loading: false, error: '内容解析失败，请稍后再试。' });
-        this.stopLoadingAnimation();
-        return;
-      }
-
-      const result = {
-        ok: true,
-        input: input,
-        provider: 'minimax',
-        model: apiConfig.MINIMAX_MODEL || 'MiniMax-M2.7',
-        report: report
-      };
 
       app.globalData.latestBaziResult = result;
       wx.navigateTo({ url: '/pages/result/result' });
 
     } catch (err) {
-      console.error('MiniMax request error:', err);
-      this.setData({ loading: false, error: '网络请求失败，请检查网络后重试。' });
+      console.error('callFunction error:', err);
+      this.setData({ loading: false, error: '云函数调用超时，请稍后重试。' });
     } finally {
       this.stopLoadingAnimation();
       this.setData({ loading: false });
@@ -188,5 +100,17 @@ Page({
     if (!input.hour)     return '请选择出生时间。';
     if (!input.gender)   return '请选择性别。';
     return '';
+  },
+
+  getErrorMessage(result) {
+    if (!result) return '云函数没有返回内容，请确认 analyzeBazi 已部署。';
+    if (result.message) return result.message;
+    if (result.report && result.report.summary) return result.report.summary;
+    if (result.error === 'MISSING_ENV')        return '云函数环境变量未配置。';
+    if (result.error === 'INVALID_INPUT')       return '信息不完整，请检查必填项。';
+    if (result.error === 'LLM_REQUEST_FAILED')  return 'Kimi 服务暂时不可用，请稍后再试。';
+    if (result.error === 'INVALID_LLM_RESPONSE') return 'Kimi 返回内容异常，请稍后再试。';
+    if (result.error === 'FUNCTION_EXCEPTION')   return '云函数执行超时，请稍后重试。';
+    return '生成结果暂时不可用，请稍后重试。';
   }
 });

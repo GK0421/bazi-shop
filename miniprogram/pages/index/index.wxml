@@ -7,16 +7,16 @@
     <view class="title">八字便利店</view>
     <view class="subtitle">把出生时间整理成一份传统干支文化小报告</view>
     <view class="body-text">
-      输入生日和时间，看看干支、五行和传统文化解释如何描述你的时间信息。
+      输入生日和时间，让 Kimi 从干支、五行角度为你解读传统文化。
     </view>
-    <button class="primary-button" bindtap="goForm">开始生成</button>
+    <button class="primary-button" bindtap="goForm">开始推演</button>
     <button class="secondary-button" bindtap="goAbout">了解项目</button>
   </view>
 
   <view class="soft-card">
     <view class="section-title">小小提示</view>
     <view class="body-text">
-      这里只做传统文化概念说明。页面会在云函数暂不可用时给出提示，不会空白卡住。
+      这里只做传统文化概念说明。结果仅供文化学习与娱乐参考。
     </view>
   </view>
 
