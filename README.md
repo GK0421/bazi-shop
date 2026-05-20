@@ -37,3 +37,14 @@ bazi-shop/
 - 鍏瓧鍒嗘瀽浠呬緵濞变箰鍜屾枃鍖栧涔犲弬鑰冿紝涓嶆瀯鎴愪笓涓氬缓璁?
 ## 璁稿彲璇?
 MIT License锛岃瑙?LICENSE 涓?NOTICE銆?
+
+
+## 云函数环境变量配置（无法访问网页控制台时）
+
+如果你的微信开发者工具版本过旧或无法访问 `console.cloud.miniprogram.com`：
+
+1. 复制 `cloudfunctions/analyzeBazi/config.json.example` 为 `config.json`
+2. 编辑 `config.json`，将 `LLM_API_KEY` 替换为你的 MiniMax Token
+3. 在微信开发者工具中上传部署云函数
+4. `config.json` 已在 `.gitignore` 中排除，不会被提交到 GitHub
+5. 每次 `git pull` 后需要重新创建 `config.json`
