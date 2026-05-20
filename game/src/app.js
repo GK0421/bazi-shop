@@ -13,6 +13,30 @@ const {
   SHRINE_EVENTS,
   WEAPONS
 } = require("./constants");
+const {
+  createAudioState,
+  initializeAudio,
+  playAlert,
+  playBossScream,
+  playRoomIntro,
+  playSkill,
+  playUiTap,
+  playVictory,
+  setAudioEnabled,
+  syncSceneAudio,
+  toggleAudioEnabled
+} = require("./audio");
+const {
+  createDefaultBestRecord,
+  hydratePersistentState,
+  markTutorialSeen,
+  maybeConsumeSidebarReward,
+  openSidebarRevisit,
+  persistPersistentState,
+  saveBestRecord,
+  setupPlatformHooks,
+  shareRunResult
+} = require("./platform");
 
 const SCENES = {
   START: "start",
@@ -22,6 +46,7 @@ const SCENES = {
   EVENT: "event",
   REST: "rest",
   SWITCH: "switch",
+  PAUSE: "pause",
   GAME_OVER: "game_over"
 };
 
@@ -57,10 +82,13 @@ function createGame() {
     roomIntroTimer: 0,
     roomElapsed: 0,
     runStartAt: 0,
+    selectedCharacterId: "AIDA",
     runStats: {
       kills: 0,
       peakMadness: 0,
-      roomsCleared: 0
+      roomsCleared: 0,
+      lastTraceAt: 0,
+      madnessTrace: []
     },
     player: createPlayer("AIDA"),
     enemies: [],
@@ -75,11 +103,28 @@ function createGame() {
     arenaRect: null,
     bottomButtons: null,
     victory: false,
-    audio: {
-      enabled: true,
-      manifestPath: AUDIO_CONFIG.manifestPath
+    tutorialSeen: false,
+    showTutorial: false,
+    sceneBeforePause: SCENES.BATTLE,
+    bestRecord: createDefaultBestRecord(),
+    platform: {
+      pendingSidebarReward: false,
+      pendingRunShield: 0,
+      lastLaunchInfo: null
+    },
+    audio: createAudioState(AUDIO_CONFIG, systemInfo),
+    releaseFlags: {
+      shareEnabled: Boolean(tt.shareAppMessage),
+      sidebarEnabled: Boolean(tt.navigateToScene)
     }
   };
+
+  hydratePersistentState(state);
+  state.showTutorial = !state.tutorialSeen;
+  initializeAudio(state.audio);
+  setAudioEnabled(state.audio, state.audio.enabled);
+  setupPlatformHooks(state, SCENES);
+  syncSceneAudio(state);
 
   tt.onTouchStart((event) => onTouchStart(state, event));
   tt.onTouchMove((event) => onTouchMove(state, event));
@@ -104,7 +149,24 @@ function tick(state, timestamp) {
 }
 
 function updateScene(state, dt) {
+  syncSceneAudio(state);
+
+  if (maybeConsumeSidebarReward(state)) {
+    if (state.scene === SCENES.START || state.scene === SCENES.GAME_OVER) {
+      state.platform.pendingRunShield += 1;
+      addNotification(state, "侧边栏回访奖励已存入下一局：开局获得 1 层护盾。", "success");
+    } else {
+      state.player.consumables.shield += 1;
+      addNotification(state, "侧边栏回访奖励：当前获得 1 层护盾。", "success");
+    }
+  }
+
   if (state.scene === SCENES.START || state.scene === SCENES.GAME_OVER) {
+    updateNotifications(state, dt);
+    return;
+  }
+
+  if (state.scene === SCENES.PAUSE) {
     updateNotifications(state, dt);
     return;
   }
@@ -140,11 +202,10 @@ function updateBattle(state, dt) {
   updateEnemies(state, dt);
   handleDrops(state);
   updateRoomFlow(state);
+  updateRunTrace(state, dt);
 
   if (player.hp <= 0) {
-    state.scene = SCENES.GAME_OVER;
-    state.victory = false;
-    addNotification(state, "调查员被深渊吞没了。", "danger");
+    enterGameOver(state, false, "调查员被深渊吞没了。");
   }
 }
 
@@ -190,8 +251,42 @@ function createPlayer(characterId) {
   };
 }
 
+function updateRunTrace(state, dt) {
+  state.runStats.lastTraceAt += dt;
+  if (state.runStats.lastTraceAt < 0.2) {
+    return;
+  }
+
+  state.runStats.lastTraceAt = 0;
+  state.runStats.madnessTrace.push(Math.round(state.player.madness));
+  if (state.runStats.madnessTrace.length > 42) {
+    state.runStats.madnessTrace.shift();
+  }
+}
+
+function enterGameOver(state, victory, message) {
+  if (state.scene === SCENES.GAME_OVER) {
+    return;
+  }
+
+  state.scene = SCENES.GAME_OVER;
+  state.victory = Boolean(victory);
+  addNotification(state, message, victory ? "success" : "danger");
+  saveBestRecord(state);
+  if (victory) {
+    playVictory(state);
+  } else {
+    playAlert(state);
+  }
+  persistPersistentState(state);
+}
+
 function startRun(state) {
-  state.player = createPlayer("AIDA");
+  state.player = createPlayer(state.selectedCharacterId || "AIDA");
+  if (state.platform.pendingRunShield > 0) {
+    state.player.consumables.shield += state.platform.pendingRunShield;
+    state.platform.pendingRunShield = 0;
+  }
   state.enemies = [];
   state.bullets = [];
   state.enemyBullets = [];
@@ -206,17 +301,20 @@ function startRun(state) {
   state.runStats = {
     kills: 0,
     peakMadness: 0,
-    roomsCleared: 0
+    roomsCleared: 0,
+    lastTraceAt: 0,
+    madnessTrace: []
   };
   state.victory = false;
+  state.sceneBeforePause = SCENES.BATTLE;
+  state.showTutorial = false;
   startNextRoom(state);
 }
 
 function startNextRoom(state) {
   state.roomIndex += 1;
   if (state.roomIndex >= ROOM_FLOW.length) {
-    state.scene = SCENES.GAME_OVER;
-    state.victory = true;
+    enterGameOver(state, true, "你暂时压住了深渊的心跳。");
     return;
   }
 
@@ -234,6 +332,7 @@ function startNextRoom(state) {
   state.player.x = CONFIG.width / 2;
   state.player.y = 652;
   addNotification(state, `${state.room.name}`, "accent");
+  playRoomIntro(state);
 }
 
 function enterRoomContent(state) {
@@ -774,6 +873,7 @@ function spawnBossBomb(state, boss) {
 }
 
 function spawnBossScream(state, boss) {
+  playBossScream(state);
   state.effects.push({
     type: "banner",
     text: "疯狂尖啸",
@@ -826,12 +926,14 @@ function playerTakeDamage(state, amount, madnessGain) {
   if (player.shield > 0) {
     player.shield -= 1;
     emitCircle(state, player.x, player.y, 32, "#F7D05A", 0.25);
+    playAlert(state);
     return;
   }
 
   player.hp -= amount;
   addMadness(player, madnessGain, state);
   emitFlash(state, player.x, player.y, "#FF7B7B", 0.22);
+  playAlert(state);
 
   if (player.hp <= 0 && player.buffs.guardianAngel && !player.reviveUsed) {
     player.reviveUsed = true;
@@ -867,6 +969,7 @@ function triggerMadnessBreak(state) {
   player.hp -= 15;
   emitFlash(state, player.x, player.y, "#FF2D72", 0.3);
   addNotification(state, "疯狂失控，短暂失去身体控制。", "danger");
+  playAlert(state);
 }
 
 function damageEnemy(state, enemy, amount) {
@@ -973,9 +1076,7 @@ function updateRoomFlow(state) {
 
   state.runStats.roomsCleared += 1;
   if (state.room.type === "boss") {
-    state.scene = SCENES.GAME_OVER;
-    state.victory = true;
-    addNotification(state, "乌姆·亚特倒下了。", "success");
+    enterGameOver(state, true, "乌姆·亚特倒下了。");
     return;
   }
 
@@ -1085,6 +1186,7 @@ function useSkill(state) {
     player.sanity -= 30;
     player.skillCooldown = CHARACTERS.AIDA.skillCooldown;
     emitCircle(state, player.x, player.y, 130, "#7DD6FF", 0.28);
+    playSkill(state);
     for (let i = 0; i < state.enemies.length; i += 1) {
       const enemy = state.enemies[i];
       if (!enemy.dead && distance(player.x, player.y, enemy.x, enemy.y) <= 128) {
@@ -1099,6 +1201,7 @@ function useSkill(state) {
     player.skillCooldown = CHARACTERS.MARCUS.skillCooldown;
     healPlayer(player, 40);
     emitCircle(state, player.x, player.y, 54, "#4A9D4A", 0.25);
+    playSkill(state);
     addNotification(state, "急救术恢复了生命。", "success");
     return;
   }
@@ -1113,6 +1216,7 @@ function useSkill(state) {
     player.markTimer = 5;
     player.skillCooldown = CHARACTERS.KARA.skillCooldown;
     emitCircle(state, target.x, target.y, 34, "#D95448", 0.2);
+    playSkill(state);
     addNotification(state, `已标记 ${target.name}。`, "accent");
     return;
   }
@@ -1120,6 +1224,7 @@ function useSkill(state) {
   player.predictionTimer = 5;
   player.skillCooldown = CHARACTERS.LI.skillCooldown;
   emitCircle(state, player.x, player.y, 48, "#4A90D9", 0.2);
+  playSkill(state);
   addNotification(state, "预判强化开启，危险预警更清晰。", "success");
 }
 
@@ -1129,6 +1234,7 @@ function useConsumable(state) {
     player.consumables.healthPotion -= 1;
     healPlayer(player, 40);
     emitCircle(state, player.x, player.y, 42, "#D95448", 0.22);
+    playUiTap(state);
     addNotification(state, "使用治疗药水。", "success");
     return;
   }
@@ -1136,6 +1242,7 @@ function useConsumable(state) {
     player.consumables.sanityEssence -= 1;
     player.madness = Math.max(0, player.madness - 30);
     emitCircle(state, player.x, player.y, 42, "#4A90D9", 0.22);
+    playUiTap(state);
     addNotification(state, "理智精华压低了疯狂。", "success");
     return;
   }
@@ -1143,6 +1250,7 @@ function useConsumable(state) {
     player.consumables.shield -= 1;
     player.shield += 1;
     emitCircle(state, player.x, player.y, 42, "#F7D05A", 0.22);
+    playUiTap(state);
     addNotification(state, "护盾符咒已激活。", "success");
     return;
   }
@@ -1183,6 +1291,7 @@ function switchCharacter(state, index) {
   state.player.y = clamp(state.player.y, 150, 1010);
   state.player.switchCooldown = 3;
   state.scene = SCENES.BATTLE;
+  playUiTap(state);
   addNotification(state, `切换为 ${CHARACTERS[nextId].title}${CHARACTERS[nextId].shortName}`, "accent");
 }
 
@@ -1309,11 +1418,9 @@ function onTouchStart(state, event) {
   }
 
   if (state.scene === SCENES.START) {
-    startRun(state);
     return;
   }
   if (state.scene === SCENES.GAME_OVER) {
-    startRun(state);
     return;
   }
   if (state.scene === SCENES.BATTLE && point.x < CONFIG.width * 0.45 && point.y > CONFIG.height * 0.55) {
@@ -1371,9 +1478,10 @@ function onTouchEnd(state, event) {
 }
 
 function handleButtonTap(state, x, y) {
-  for (let i = 0; i < state.buttons.length; i += 1) {
+  for (let i = state.buttons.length - 1; i >= 0; i -= 1) {
     const button = state.buttons[i];
     if (isInsideRect(x, y, button.rect)) {
+      playUiTap(state);
       button.onTap();
       return true;
     }
@@ -1410,9 +1518,16 @@ function render(state) {
   } else if (state.scene === SCENES.SWITCH) {
     drawBattleScene(state);
     drawSwitchScene(state);
+  } else if (state.scene === SCENES.PAUSE) {
+    drawBattleScene(state);
+    drawPauseScene(state);
   } else if (state.scene === SCENES.GAME_OVER) {
     drawBattleScene(state);
     drawGameOverScene(state);
+  }
+
+  if (state.showTutorial) {
+    drawTutorialOverlay(state);
   }
 
   drawNotifications(state);
@@ -1460,43 +1575,55 @@ function drawBackground(state) {
 function drawStartScene(state) {
   const ctx = state.ctx;
 
-  drawText(ctx, APP_NAME_CN, CONFIG.width / 2, 188, {
+  drawText(ctx, APP_NAME_CN, CONFIG.width / 2, 174, {
     size: 54,
     weight: "700",
     color: PALETTE.white,
     align: "center"
   });
-  drawText(ctx, APP_NAME_EN, CONFIG.width / 2, 232, {
+  drawText(ctx, APP_NAME_EN, CONFIG.width / 2, 218, {
     size: 20,
     color: PALETTE.parchmentDim,
     align: "center"
   });
-  drawText(ctx, "3 分钟一局的克苏鲁竖屏肉鸽", CONFIG.width / 2, 288, {
+  drawText(ctx, "3 分钟一局的克苏鲁竖屏肉鸽", CONFIG.width / 2, 270, {
     size: 20,
     color: PALETTE.gold,
     align: "center"
   });
 
-  drawPanel(ctx, 74, 352, 572, 352, 28);
-  drawText(ctx, "核心卖点", 108, 400, {
+  drawPanel(ctx, 64, 322, 592, 286, 28);
+  drawText(ctx, "玩法摘要", 96, 368, {
     size: 22,
     weight: "700",
     color: PALETTE.parchment
   });
   drawParagraph(ctx, [
-    "1. 四名调查员随时切换，等于四套解法。",
-    "2. 疯狂不是纯惩罚，而是高风险高收益引擎。",
-    "3. 房间推进、祝福诅咒、Build 选择都很轻快。"
-  ], 108, 442, 500, 36, {
+    "1. 四名调查员可随时切换，每人代表一种解法。",
+    "2. 疯狂值越高，输出越猛，但失控风险也越大。",
+    "3. 八个房间一气呵成，祭坛、精英与 Boss 都会逼你做取舍。"
+  ], 96, 408, 530, 34, {
     size: 18,
     color: PALETTE.parchmentDim
+  });
+
+  drawText(ctx, "选择本局起始调查员", 96, 654, {
+    size: 20,
+    weight: "700",
+    color: PALETTE.white
   });
 
   const chars = CHARACTER_ORDER;
   for (let i = 0; i < chars.length; i += 1) {
     const charData = CHARACTERS[chars[i]];
-    const rect = { x: 74 + i * 144, y: 748, width: 128, height: 132 };
+    const rect = { x: 52 + i * 156, y: 694, width: 140, height: 146 };
     drawCardPanel(ctx, rect, charData.color);
+    if (state.selectedCharacterId === chars[i]) {
+      ctx.strokeStyle = PALETTE.gold;
+      ctx.lineWidth = 3;
+      roundRect(ctx, rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6, 22);
+      ctx.stroke();
+    }
     drawText(ctx, charData.title, rect.x + rect.width / 2, rect.y + 28, {
       size: 16,
       color: charData.color,
@@ -1518,10 +1645,22 @@ function drawStartScene(state) {
       color: PALETTE.parchmentDim,
       align: "center"
     });
+    drawText(ctx, state.selectedCharacterId === chars[i] ? "本局起点" : "点击选择", rect.x + rect.width / 2, rect.y + 132, {
+      size: 12,
+      color: state.selectedCharacterId === chars[i] ? PALETTE.gold : PALETTE.parchmentDim,
+      align: "center"
+    });
+    state.buttons.push({
+      rect,
+      onTap: function onSelectCharacter() {
+        state.selectedCharacterId = chars[i];
+        persistPersistentState(state);
+      }
+    });
   }
 
-  const startButton = { x: 118, y: 950, width: 484, height: 92 };
-  drawPrimaryButton(ctx, startButton, "进入深渊", "点击开始本局调查");
+  const startButton = { x: 118, y: 896, width: 484, height: 92 };
+  drawPrimaryButton(ctx, startButton, "进入深渊", `以 ${CHARACTERS[state.selectedCharacterId].shortName} 作为本局主角`);
   state.buttons.push({
     rect: startButton,
     onTap: function onStartTap() {
@@ -1529,14 +1668,39 @@ function drawStartScene(state) {
     }
   });
 
-  drawText(ctx, "左手摇杆移动，右侧释放技能，武器自动射击最近目标", CONFIG.width / 2, 1116, {
+  const tutorialButton = { x: 118, y: 1006, width: 230, height: 68 };
+  const audioButton = { x: 372, y: 1006, width: 230, height: 68 };
+  drawGhostButton(ctx, tutorialButton, "玩法说明");
+  drawGhostButton(ctx, audioButton, state.audio.enabled ? "音频：开启" : "音频：关闭");
+  state.buttons.push({
+    rect: tutorialButton,
+    onTap: function onTutorialTap() {
+      state.showTutorial = true;
+    }
+  });
+  state.buttons.push({
+    rect: audioButton,
+    onTap: function onAudioTap() {
+      toggleAudioEnabled(state.audio);
+      persistPersistentState(state);
+    }
+  });
+
+  if (state.platform.pendingRunShield > 0) {
+    drawText(ctx, `已存入回访奖励：下一局护盾 +${state.platform.pendingRunShield}`, CONFIG.width / 2, 1086, {
+      size: 15,
+      color: PALETTE.gold,
+      align: "center"
+    });
+  }
+  drawText(ctx, `最佳记录：${state.bestRecord.victory ? "已通关" : "未通关"} · 房间 ${state.bestRecord.roomsCleared} · 击杀 ${state.bestRecord.kills}`, CONFIG.width / 2, 1114, {
     size: 16,
     color: PALETTE.parchmentDim,
     align: "center"
   });
-  drawText(ctx, "疯狂值越高越强，但也越容易失控", CONFIG.width / 2, 1146, {
-    size: 18,
-    color: PALETTE.accent,
+  drawText(ctx, "左手摇杆移动，武器自动射击，右侧技能与换人决定你的 Build 节奏。", CONFIG.width / 2, 1150, {
+    size: 16,
+    color: PALETTE.parchmentDim,
     align: "center"
   });
 }
@@ -1640,6 +1804,25 @@ function drawTopHud(state) {
     size: 13,
     color: PALETTE.parchmentDim,
     align: "right"
+  });
+
+  const pauseRect = { x: 620, y: 18, width: 74, height: 44 };
+  roundRect(ctx, pauseRect.x, pauseRect.y, pauseRect.width, pauseRect.height, 16);
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.stroke();
+  drawText(ctx, "暂停", pauseRect.x + pauseRect.width / 2, pauseRect.y + 28, {
+    size: 15,
+    color: PALETTE.parchment,
+    align: "center"
+  });
+  state.buttons.push({
+    rect: pauseRect,
+    onTap: function onPauseTap() {
+      state.sceneBeforePause = state.scene;
+      state.scene = SCENES.PAUSE;
+    }
   });
 }
 
@@ -1920,6 +2103,19 @@ function drawRestScene(state) {
   drawOverlay(ctx, 0.52);
   drawSelectionPanel(ctx, "过渡安全区", "生命 +30，理智 +20，准备迎接最终战");
 
+  const nextRoom = ROOM_FLOW[state.roomIndex + 1];
+  if (nextRoom) {
+    drawOptionCard(
+      ctx,
+      { x: 102, y: 360, width: 516, height: 150 },
+      `下一间：${nextRoom.name}`,
+      nextRoom.type === "boss"
+        ? "终点是乌姆·亚特。建议先补满状态，再决定由谁打首轮输出。"
+        : `类型：${nextRoom.type}。${nextRoom.subtitle}`,
+      nextRoom.type === "boss" ? PALETTE.blood : PALETTE.gold
+    );
+  }
+
   const rect = { x: 172, y: 604, width: 376, height: 86 };
   drawPrimaryButton(ctx, rect, "继续下潜", "前往深渊心室");
   state.buttons.push({
@@ -1970,7 +2166,7 @@ function drawGameOverScene(state) {
   const title = state.victory ? "深渊暂时沉默了" : "疯狂吞噬了你";
   const subtitle = state.victory ? "乌姆·亚特被击退，本轮调查成功" : "再来一局，重新找到疯狂与力量的平衡";
 
-  drawPanel(ctx, 96, 250, 528, 520, 34);
+  drawPanel(ctx, 84, 220, 552, 620, 34);
   drawText(ctx, title, CONFIG.width / 2, 330, {
     size: 40,
     weight: "700",
@@ -1990,12 +2186,25 @@ function drawGameOverScene(state) {
     `最高疯狂：${state.runStats.peakMadness}`,
     `通过房间：${state.runStats.roomsCleared}`
   ];
-  drawParagraph(ctx, stats, 160, 446, 400, 42, {
-    size: 22,
+  drawParagraph(ctx, stats, 138, 432, 450, 38, {
+    size: 20,
     color: PALETTE.white
   });
 
-  const restartRect = { x: 170, y: 652, width: 380, height: 86 };
+  drawText(ctx, "本局疯狂曲线", 138, 592, {
+    size: 18,
+    weight: "700",
+    color: PALETTE.parchment
+  });
+  drawMadnessChart(ctx, state.runStats.madnessTrace, { x: 138, y: 610, width: 444, height: 92 });
+
+  drawText(ctx, `最佳记录：${state.bestRecord.victory ? "已通关" : "未通关"} · 房间 ${state.bestRecord.roomsCleared} · 击杀 ${state.bestRecord.kills}`, CONFIG.width / 2, 730, {
+    size: 15,
+    color: PALETTE.parchmentDim,
+    align: "center"
+  });
+
+  const restartRect = { x: 152, y: 754, width: 416, height: 86 };
   drawPrimaryButton(ctx, restartRect, "重新开局", "点击再探一次深渊");
   state.buttons.push({
     rect: restartRect,
@@ -2003,6 +2212,267 @@ function drawGameOverScene(state) {
       startRun(state);
     }
   });
+
+  const shareRect = { x: 152, y: 680, width: 200, height: 56 };
+  const reviewRect = { x: 368, y: 680, width: 200, height: 56 };
+  drawGhostButton(ctx, shareRect, "分享战绩");
+  drawGhostButton(ctx, reviewRect, "打开侧边栏");
+  state.buttons.push({
+    rect: shareRect,
+    onTap: function onShareTap() {
+      shareRunResult(state);
+    }
+  });
+  state.buttons.push({
+    rect: reviewRect,
+    onTap: function onSidebarTap() {
+      openSidebarRevisit();
+    }
+  });
+}
+
+function drawPauseScene(state) {
+  const ctx = state.ctx;
+  const surviveSeconds = Math.max(0, Math.floor(state.now - state.runStartAt));
+  const progressTitle = state.room ? `房间 ${state.room.id}/8 · ${state.room.name}` : "暂停中";
+
+  drawOverlay(ctx, 0.72);
+  drawPanel(ctx, 74, 182, 572, 760, 34);
+  drawText(ctx, "暂停整理", CONFIG.width / 2, 258, {
+    size: 38,
+    weight: "700",
+    color: PALETTE.white,
+    align: "center"
+  });
+  drawText(ctx, progressTitle, CONFIG.width / 2, 296, {
+    size: 18,
+    color: PALETTE.gold,
+    align: "center"
+  });
+
+  const summaryRect = { x: 112, y: 334, width: 496, height: 150 };
+  drawCardPanel(ctx, summaryRect, PALETTE.accent);
+  drawText(ctx, `存活 ${formatClock(surviveSeconds)}`, summaryRect.x + 28, summaryRect.y + 40, {
+    size: 22,
+    weight: "700",
+    color: PALETTE.white
+  });
+  drawText(ctx, `击杀 ${state.runStats.kills} · 已通关房间 ${state.runStats.roomsCleared} · 峰值疯狂 ${state.runStats.peakMadness}`, summaryRect.x + 28, summaryRect.y + 74, {
+    size: 14,
+    color: PALETTE.parchmentDim
+  });
+  drawText(ctx, `当前护盾 ${state.player.shield + state.player.consumables.shield} · 角色 ${CHARACTERS[state.player.characterId].shortName} · 音频 ${state.audio.enabled ? "开启" : "关闭"}`, summaryRect.x + 28, summaryRect.y + 104, {
+    size: 14,
+    color: PALETTE.parchmentDim
+  });
+  drawText(ctx, "你可以继续推进，也可以在这里切换音频、查看教程和分享战绩。", summaryRect.x + 28, summaryRect.y + 132, {
+    size: 14,
+    color: PALETTE.parchmentDim
+  });
+
+  const resumeRect = { x: 136, y: 526, width: 448, height: 84 };
+  drawPrimaryButton(ctx, resumeRect, "继续下潜", "回到当前战斗");
+  state.buttons.push({
+    rect: resumeRect,
+    onTap: function onResumeTap() {
+      state.scene = state.sceneBeforePause || SCENES.BATTLE;
+    }
+  });
+
+  const tutorialRect = { x: 136, y: 632, width: 214, height: 68 };
+  const audioRect = { x: 370, y: 632, width: 214, height: 68 };
+  const shareRect = { x: 136, y: 716, width: 214, height: 68 };
+  const sidebarRect = { x: 370, y: 716, width: 214, height: 68 };
+  const restartRect = { x: 136, y: 808, width: 448, height: 72 };
+
+  drawGhostButton(ctx, tutorialRect, "查看教程");
+  drawGhostButton(ctx, audioRect, state.audio.enabled ? "音频：开启" : "音频：关闭");
+  drawGhostButton(ctx, shareRect, state.releaseFlags.shareEnabled ? "分享战绩" : "分享待接入");
+  drawGhostButton(ctx, sidebarRect, state.releaseFlags.sidebarEnabled ? "打开侧边栏" : "侧边栏待接入");
+  drawGhostButton(ctx, restartRect, "重新开始本局");
+
+  state.buttons.push({
+    rect: tutorialRect,
+    onTap: function onPauseTutorialTap() {
+      state.showTutorial = true;
+    }
+  });
+  state.buttons.push({
+    rect: audioRect,
+    onTap: function onPauseAudioTap() {
+      toggleAudioEnabled(state.audio);
+      persistPersistentState(state);
+    }
+  });
+  state.buttons.push({
+    rect: shareRect,
+    onTap: function onPauseShareTap() {
+      shareRunResult(state);
+    }
+  });
+  state.buttons.push({
+    rect: sidebarRect,
+    onTap: function onPauseSidebarTap() {
+      openSidebarRevisit();
+    }
+  });
+  state.buttons.push({
+    rect: restartRect,
+    onTap: function onPauseRestartTap() {
+      startRun(state);
+    }
+  });
+}
+
+function drawTutorialOverlay(state) {
+  const ctx = state.ctx;
+
+  drawOverlay(ctx, 0.82);
+  drawPanel(ctx, 54, 118, 612, 1042, 36);
+  drawText(ctx, "深渊行动手册", CONFIG.width / 2, 184, {
+    size: 36,
+    weight: "700",
+    color: PALETTE.white,
+    align: "center"
+  });
+  drawText(ctx, "3 分钟一局，目标是在疯狂失控前穿过 8 个房间。", CONFIG.width / 2, 224, {
+    size: 18,
+    color: PALETTE.gold,
+    align: "center"
+  });
+
+  drawCardPanel(ctx, { x: 92, y: 264, width: 536, height: 170 }, PALETTE.accent);
+  drawText(ctx, "核心循环", 118, 306, {
+    size: 22,
+    weight: "700",
+    color: PALETTE.white
+  });
+  drawParagraph(ctx, [
+    "1. 普通房与精英房负责堆装备和 Buff。",
+    "2. 第 6 房是古神祭坛，给你祝福、交易或诅咒。",
+    "3. 第 7 房是安全屋，补状态并准备最终 Boss。",
+    "4. 第 8 房直面乌姆·亚特，撑住即可通关。"
+  ], 118, 342, 484, 28, {
+    size: 16,
+    color: PALETTE.parchmentDim
+  });
+
+  drawCardPanel(ctx, { x: 92, y: 458, width: 536, height: 200 }, PALETTE.blue);
+  drawText(ctx, "操作与风险", 118, 500, {
+    size: 22,
+    weight: "700",
+    color: PALETTE.white
+  });
+  drawParagraph(ctx, [
+    "左手拖动摇杆走位，武器会自动锁定最近敌人。",
+    "右下技能决定瞬时爆发，换人会额外吃 30 点疯狂值。",
+    "疯狂值越高，战斗越凶，但满槽会短暂失控。",
+    "血量、理智和护盾都在顶部与底部 HUD 实时反馈。"
+  ], 118, 536, 484, 28, {
+    size: 16,
+    color: PALETTE.parchmentDim
+  });
+
+  drawCardPanel(ctx, { x: 92, y: 682, width: 536, height: 242 }, PALETTE.gold);
+  drawText(ctx, "四位调查员分工", 118, 724, {
+    size: 22,
+    weight: "700",
+    color: PALETTE.white
+  });
+  drawParagraph(ctx, [
+    "艾达：稳控场，技能是精神冲击，适合开荒与清怪。",
+    "马库斯：最能扛，技能是急救术，适合保底续航。",
+    "卡拉：爆发最高，标记狙击专打精英和 Boss。",
+    "阿黎：视野最稳，预判技能更容易躲弹幕与找安全位。"
+  ], 118, 760, 484, 30, {
+    size: 16,
+    color: PALETTE.parchmentDim
+  });
+
+  drawText(ctx, "上线建议：先补正式像素资源、真实 SFX/BGM、广告位 ID，再进开发者工具做真机长测。", CONFIG.width / 2, 968, {
+    size: 15,
+    color: PALETTE.parchmentDim,
+    align: "center"
+  });
+
+  const closeRect = { x: 152, y: 1032, width: 416, height: 82 };
+  drawPrimaryButton(ctx, closeRect, "我知道了", "返回当前界面");
+  state.buttons.push({
+    rect: closeRect,
+    onTap: function onCloseTutorial() {
+      state.showTutorial = false;
+      markTutorialSeen(state);
+    }
+  });
+}
+
+function drawMadnessChart(ctx, values, rect) {
+  drawCardPanel(ctx, rect, PALETTE.accent);
+
+  const inner = {
+    x: rect.x + 18,
+    y: rect.y + 14,
+    width: rect.width - 36,
+    height: rect.height - 28
+  };
+
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 2; i += 1) {
+    const y = inner.y + (inner.height / 2) * i;
+    ctx.beginPath();
+    ctx.moveTo(inner.x, y);
+    ctx.lineTo(inner.x + inner.width, y);
+    ctx.stroke();
+  }
+
+  drawText(ctx, "100", rect.x + rect.width - 8, inner.y + 8, {
+    size: 10,
+    color: PALETTE.parchmentDim,
+    align: "right"
+  });
+  drawText(ctx, "50", rect.x + rect.width - 8, inner.y + inner.height / 2 + 4, {
+    size: 10,
+    color: PALETTE.parchmentDim,
+    align: "right"
+  });
+  drawText(ctx, "0", rect.x + rect.width - 8, inner.y + inner.height, {
+    size: 10,
+    color: PALETTE.parchmentDim,
+    align: "right",
+    baseline: "bottom"
+  });
+
+  if (!values || values.length < 2) {
+    drawText(ctx, "本局时间太短，暂未生成疯狂曲线。", rect.x + rect.width / 2, rect.y + rect.height / 2 + 6, {
+      size: 14,
+      color: PALETTE.parchmentDim,
+      align: "center"
+    });
+    return;
+  }
+
+  ctx.beginPath();
+  for (let i = 0; i < values.length; i += 1) {
+    const x = inner.x + (inner.width * i) / Math.max(1, values.length - 1);
+    const y = inner.y + inner.height * (1 - clamp(values[i], 0, 100) / 100);
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  ctx.strokeStyle = PALETTE.gold;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  const lastValue = clamp(values[values.length - 1], 0, 100);
+  const lastX = inner.x + inner.width;
+  const lastY = inner.y + inner.height * (1 - lastValue / 100);
+  ctx.fillStyle = PALETTE.gold;
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawSelectionPanel(ctx, title, subtitle) {

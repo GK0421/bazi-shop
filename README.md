@@ -87,6 +87,8 @@ npm run audio:generate
 
 - [docs/DOUYIN_SETUP.md](D:\Develop\bazi-shop\docs\DOUYIN_SETUP.md)
 - [docs/CRAZY_ABYSS_AUDIO_PIPELINE.md](D:\Develop\bazi-shop\docs\CRAZY_ABYSS_AUDIO_PIPELINE.md)
+- [docs/CRAZY_ABYSS_SOURCE_DIGEST.md](D:\Develop\bazi-shop\docs\CRAZY_ABYSS_SOURCE_DIGEST.md)
+- [docs/RELEASE_READINESS.md](D:\Develop\bazi-shop\docs\RELEASE_READINESS.md)
 
 ## 设计来源
 
@@ -101,3 +103,4 @@ npm run audio:generate
 - 疯狂值分段
 - Shrine / Rest / Boss 结构
 - 克苏鲁式暗色像素氛围
+- 暂停、教程、结算复盘、分享与回访入口

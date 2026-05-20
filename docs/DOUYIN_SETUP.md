@@ -84,3 +84,8 @@ npm run dev:api
 音频文档：
 
 - [docs/CRAZY_ABYSS_AUDIO_PIPELINE.md](D:\Develop\bazi-shop\docs\CRAZY_ABYSS_AUDIO_PIPELINE.md)
+
+资料提炼与上线清单：
+
+- [docs/CRAZY_ABYSS_SOURCE_DIGEST.md](D:\Develop\bazi-shop\docs\CRAZY_ABYSS_SOURCE_DIGEST.md)
+- [docs/RELEASE_READINESS.md](D:\Develop\bazi-shop\docs\RELEASE_READINESS.md)
