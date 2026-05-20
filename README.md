@@ -14,7 +14,7 @@
   - [game/src/app.js](D:\Develop\bazi-shop\game\src\app.js)
   - [game/src/constants.js](D:\Develop\bazi-shop\game\src\constants.js)
 - 抖音工程 `AppID` 已设置为 `ttf41382ae6a74c90b02`
-- 旧的“今日人设签 / 八字分析”方向已退出主路径，当前文档和配置统一以《疯狂深渊》为准
+- 当前文档、配置和运行入口都已统一为《疯狂深渊》
 - 音频生成改为本地脚本方案，使用 MiniMax 密钥从本地忽略文件读取，不写进前端源码
 
 ## 核心玩法
