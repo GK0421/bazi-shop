@@ -1,3 +1,0 @@
-.container { padding: 40rpx; }
-.result { font-size: 32rpx; line-height: 1.8; white-space: pre-wrap; }
-.disclaimer { margin-top: 60rpx; font-size: 24rpx; color: #888; text-align: center; }

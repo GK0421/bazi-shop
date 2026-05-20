@@ -1,8 +1,8 @@
 {
-  "name": "persona-vibe-card-workspace",
+  "name": "crazy-abyss-workspace",
   "private": true,
   "version": "1.0.0",
-  "description": "今日人设签 Vibe Card workspace",
+  "description": "疯狂深渊 Douyin mini game workspace",
   "workspaces": [
     "backend"
   ],
@@ -10,6 +10,7 @@
     "dev:api": "npm --prefix backend run dev",
     "start:api": "npm --prefix backend start",
     "check": "npm --prefix backend run check",
+    "audio:generate": "node ./scripts/generate-minimax-audio.js",
     "open": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/open-project.ps1"
   }
 }

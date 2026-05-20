@@ -1,9 +1,0 @@
-<view class="container">
-  <view class="card">
-    <view class="title">分析结果</view>
-    <view class="result">{{result}}</view>
-  </view>
-  <view class="disclaimer">
-    以上内容仅供娱乐和传统文化学习参考，不构成任何专业建议。
-  </view>
-</view>

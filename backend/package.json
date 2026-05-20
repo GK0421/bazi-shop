@@ -1,8 +1,9 @@
 {
-  "name": "persona-vibe-card-backend",
+  "name": "crazy-abyss-tools",
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
+  "description": "Local tooling service for 疯狂深渊",
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",

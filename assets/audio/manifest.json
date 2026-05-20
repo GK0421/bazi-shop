@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-20",
+  "outputDir": "assets/audio/generated",
+  "entries": [
+    {
+      "id": "bgm_menu",
+      "provider": "music",
+      "output": "bgm_menu.mp3",
+      "mode": "instrumental",
+      "prompt": "Dark cosmic pixel-art menu theme, eerie choir, low drones, ancient ruins, mysterious but restrained, 60 BPM, game title screen ambience",
+      "format": "mp3"
+    },
+    {
+      "id": "bgm_battle",
+      "provider": "music",
+      "output": "bgm_battle.mp3",
+      "mode": "instrumental",
+      "prompt": "Fast-paced pixel roguelike battle music, oppressive drums, low strings, occult tension, 112 BPM, short-loop friendly, vertical mobile game combat",
+      "format": "mp3"
+    },
+    {
+      "id": "bgm_boss",
+      "provider": "music",
+      "output": "bgm_boss.mp3",
+      "mode": "instrumental",
+      "prompt": "Cthulhu boss fight soundtrack, ritual percussion, warped choir, panic escalation, apocalyptic pressure, 104 BPM, dark fantasy horror game",
+      "format": "mp3"
+    },
+    {
+      "id": "bgm_safe",
+      "provider": "music",
+      "output": "bgm_safe.mp3",
+      "mode": "instrumental",
+      "prompt": "Temporary safe room ambience, fragile relief after horror battle, soft piano, distant bell, windy cave reverb, dark but calm, loopable",
+      "format": "mp3"
+    },
+    {
+      "id": "sting_room_intro",
+      "provider": "music",
+      "output": "sting_room_intro.mp3",
+      "mode": "instrumental",
+      "prompt": "Short ominous scene transition sting, occult whisper texture, 2 seconds, dark fantasy game, tense but clean ending",
+      "format": "mp3"
+    },
+    {
+      "id": "sting_victory",
+      "provider": "music",
+      "output": "sting_victory.mp3",
+      "mode": "instrumental",
+      "prompt": "Short victory sting for defeating a cosmic horror, dark heroic release, ritual bell accent, 2 seconds, concise ending",
+      "format": "mp3"
+    },
+    {
+      "id": "ui_button",
+      "provider": "placeholder",
+      "output": "ui_button.wav",
+      "note": "Replace with a handcrafted short click."
+    },
+    {
+      "id": "ui_alert",
+      "provider": "placeholder",
+      "output": "ui_alert.wav",
+      "note": "Replace with a handcrafted warning cue."
+    },
+    {
+      "id": "weapon_pistol",
+      "provider": "placeholder",
+      "output": "weapon_pistol.wav",
+      "note": "Replace with a short dry pistol shot."
+    },
+    {
+      "id": "weapon_shotgun",
+      "provider": "placeholder",
+      "output": "weapon_shotgun.wav",
+      "note": "Replace with a heavier shotgun blast."
+    },
+    {
+      "id": "skill_mental_shock",
+      "provider": "placeholder",
+      "output": "skill_mental_shock.wav",
+      "note": "Replace with a layered psychic burst."
+    },
+    {
+      "id": "boss_scream",
+      "provider": "placeholder",
+      "output": "boss_scream.wav",
+      "note": "Replace with a designed horror scream and distortion tail."
+    }
+  ]
+}
