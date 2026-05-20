@@ -1,7 +1,7 @@
 <view class="page">
   <view class="hero-card">
     <view class="tag-row">
-      <text class="note-tag">本次生成</text>
+      <text class="note-tag">本次推演</text>
       <text class="note-tag gold">不收集详细住址</text>
     </view>
     <view class="title">填写你的出生时间</view>
@@ -26,15 +26,9 @@
     <view class="field">
       <text class="label">性别（必填）</text>
       <radio-group class="gender-row" bindchange="onGenderChange">
-        <label class="gender-chip">
-          <radio value="男" checked="{{gender === '男'}}" color="#0F5D57" />男
-        </label>
-        <label class="gender-chip">
-          <radio value="女" checked="{{gender === '女'}}" color="#0F5D57" />女
-        </label>
-        <label class="gender-chip">
-          <radio value="不便填写" checked="{{gender === '不便填写'}}" color="#0F5D57" />不便填写
-        </label>
+        <label class="gender-chip"><radio value="男" checked="{{gender === '男'}}" color="#0F5D57" />男</label>
+        <label class="gender-chip"><radio value="女" checked="{{gender === '女'}}" color="#0F5D57" />女</label>
+        <label class="gender-chip"><radio value="不便填写" checked="{{gender === '不便填写'}}" color="#0F5D57" />不便填写</label>
       </radio-group>
     </view>
 
@@ -49,6 +43,12 @@
     </view>
 
     <view wx:if="{{error}}" class="error-box">{{error}}</view>
-    <button class="primary-button" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">{{loading ? '生成中...' : '提交'}}</button>
+
+    <view wx:if="{{loading}}" class="loading-box">
+      <view class="loading-spinner"></view>
+      <view class="loading-label">{{loadingText}}</view>
+    </view>
+
+    <button class="primary-button" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">{{loading ? loadingText : '开始推演'}}</button>
   </view>
 </view>
