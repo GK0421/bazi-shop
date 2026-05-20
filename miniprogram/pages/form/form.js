@@ -61,7 +61,8 @@ Page({
     try {
       const response = await wx.cloud.callFunction({
         name: 'analyzeBazi',
-        data: input
+        data: input,
+        config: { timeout: 60000 }
       });
       const result = (response && response.result) ? response.result : null;
 
@@ -75,7 +76,7 @@ Page({
 
     } catch (err) {
       console.error('analyzeBazi call error:', err);
-      this.setData({ loading: false, error: '云函数调用失败，请检查网络后重试。' });
+      this.setData({ loading: false, error: '调用超时，模型正在思考中，请稍后重试。' });
     } finally {
       this.setData({ loading: false });
     }
@@ -102,11 +103,11 @@ Page({
     if (!result) return '云函数没有返回内容，请确认 analyzeBazi 已部署。';
     if (result.message) return result.message;
     if (result.report && result.report.summary) return result.report.summary;
-    if (result.error === 'MISSING_ENV')        return '云函数环境变量未配置，请到云开发控制台添加 LLM_API_KEY 等变量。';
+    if (result.error === 'MISSING_ENV')        return '云函数环境变量未配置。';
     if (result.error === 'INVALID_INPUT')       return '信息不完整，请检查必填项。';
     if (result.error === 'LLM_REQUEST_FAILED')  return '模型服务暂时不可用，请稍后再试。';
     if (result.error === 'INVALID_LLM_RESPONSE') return '模型返回内容暂时无法展示，请稍后再试。';
-    if (result.error === 'FUNCTION_EXCEPTION')   return '云函数执行异常，请稍后重试。';
+    if (result.error === 'FUNCTION_EXCEPTION')   return '云函数执行超时，请稍后重试。';
     return '生成结果暂时不可用，请稍后重试。';
   }
 });

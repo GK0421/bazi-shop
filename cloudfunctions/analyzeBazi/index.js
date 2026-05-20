@@ -8,7 +8,6 @@ const PROVIDER = 'minimax';
 const MODEL = 'MiniMax-M2.7';
 const DISCLAIMER = "本内容仅供传统干支文化学习与娱乐参考，不构成医疗、投资、婚姻、职业或其他现实决策依据。";
 
-// 错误码
 const ERR = {
   MISSING_ENV:      'MISSING_ENV',
   INVALID_INPUT:    'INVALID_INPUT',
@@ -19,21 +18,16 @@ const ERR = {
 
 exports.main = async (event) => {
   try {
-    // ── 1. 读取配置：优先环境变量，fallback 为内嵌值（部署后腾讯云自动读取环境变量）───
+    // 1. 读取配置
     const baseUrl = (process.env.LLM_BASE_URL || 'https://api.minimax.chat/v1').replace(/\/+$/, '');
     const envApiKey = process.env.LLM_API_KEY;
-    // 环境变量必须由云开发控制台配置，不提供 fallback
     const apiKey = envApiKey && envApiKey.trim() ? envApiKey.trim() : '';
 
     if (!apiKey) {
       return errorResult(ERR.MISSING_ENV, '请先在云开发控制台配置 LLM_API_KEY 环境变量。');
     }
 
-    if (!baseUrl) {
-      return errorResult(ERR.MISSING_ENV, '请先在云函数配置中填写 LLM_BASE_URL 环境变量。');
-    }
-
-    // ── 2. 输入校验 ──────────────────────────────────────────────────────────
+    // 2. 输入校验
     const input = {
       birthday:  (event.birthday  || '').trim(),
       hour:      (event.hour      || '').trim(),
@@ -45,16 +39,16 @@ exports.main = async (event) => {
     if (!input.hour)     return errorResult(ERR.INVALID_INPUT, '请填写出生时间。');
     if (!input.gender)   return errorResult(ERR.INVALID_INPUT, '请填写性别。');
 
-    // ── 3. 调用 MiniMax ──────────────────────────────────────────────────────
+    // 3. 调用 MiniMax（轻量 prompt，减少 token 提升速度）
     const url = baseUrl + '/chat/completions';
     const postBody = JSON.stringify({
       model: MODEL,
       messages: [
-        { role: 'system', content: buildSystemPrompt() },
-        { role: 'user',   content: buildUserPrompt(input) }
+        { role: 'user', content: buildSimplePrompt(input) }
       ],
-      temperature: 0.45,
-      max_tokens: 900
+      temperature: 0.5,
+      max_tokens: 400,
+      top_p: 0.9
     });
 
     const response = await requestJson(url, postBody, apiKey);
@@ -63,13 +57,13 @@ exports.main = async (event) => {
       return errorResult(ERR.LLM_REQUEST_FAILED, '模型服务暂时没有返回可用结果，请稍后再试。');
     }
 
-    // ── 4. 解析结果 ───────────────────────────────────────────────────────────
+    // 4. 解析结果
     const text = getMessageText(response.body);
     if (!text) {
       return errorResult(ERR.INVALID_LLM_RESPONSE, '模型返回内容暂时无法展示，请稍后再试。');
     }
 
-    const report = parseReport(text);
+    const report = buildReport(text, input);
     if (!report) {
       return errorResult(ERR.INVALID_LLM_RESPONSE, '模型返回格式异常，请稍后再试。');
     }
@@ -81,39 +75,37 @@ exports.main = async (event) => {
   }
 };
 
-// ── prompt 构建 ────────────────────────────────────────────────────────────────
-function buildSystemPrompt() {
+// 简化 prompt - 一次性请求，不要求 JSON 格式（更快）
+function buildSimplePrompt(input) {
   return [
-    '你是传统干支文化学习助手。',
-    '请只从天干、地支、节气、五行和民俗文化角度做温和说明。',
-    '内容只用于文化学习和娱乐参考，不输出现实决策结论，不使用确定性承诺。',
-    '不要给出发财、改运、化解、疾病、死亡、灾祸、婚恋确定性预测、投资建议、医疗建议。',
-    '不要使用"一定""必定""注定""保证"等确定性表达。',
-    '请输出严格 JSON，不要输出 Markdown 或任何解释性文字。',
-    'JSON 必须包含 title、summary、baziCultureNote、fiveElementsNote、disclaimer 五个字段。',
-    'disclaimer 固定为：' + DISCLAIMER
-  ].join('\n');
-}
-
-function buildUserPrompt(input) {
-  const fields = [
-    '阳历生日：' + input.birthday,
-    '出生时间：' + input.hour,
+    '你是传统干支文化助手。请用简体中文直接回复，不要用JSON格式。',
+    '按以下结构分三段回复：',
+    '',
+    '【文化概述】',
+    '用50字左右从传统文化角度温和描述这个出生时间',
+    '',
+    '【干支时间解读】',
+    '用50字左右从干支、节气角度做文化学习说明',
+    '',
+    '【五行分类参考】',
+    '用50字左右从五行分类角度做文化学习说明',
+    '',
+    '重要规则：',
+    '- 不长于200字',
+    '- 不要使用一定、必定、注定、保证等确定性表达',
+    '- 不要给出发财、改运、疾病、死亡、灾祸、婚恋预测',
+    '- 内容仅供文化学习与娱乐参考',
+    '- 免责声明：' + DISCLAIMER,
+    '',
+    '用户信息：',
+    '生日：' + input.birthday,
+    '时辰：' + input.hour,
     '性别：' + input.gender,
-    '出生地：' + (input.location || '未填写'),
-    '姓名：' + (input.name       || '未填写')
-  ].join('\n');
-  return [
-    '请根据以下信息生成传统干支文化学习说明（严格 JSON）：',
-    fields,
-    'title: 一个简洁的传统文化角度标题',
-    'summary: 整体文化印象和学习角度说明（100字以内，温和克制）',
-    'baziCultureNote: 干支记录时间的文化含义（50字以内）',
-    'fiveElementsNote: 五行分类的学习角度说明（50字以内）'
+    '出生地：' + (input.location || '未提供')
   ].join('\n');
 }
 
-// ── HTTP 工具 ────────────────────────────────────────────────────────────────
+// HTTP 工具
 function requestJson(url, postBody, apiKey) {
   return new Promise((resolve, reject) => {
     const pu = new URL(url);
@@ -121,7 +113,7 @@ function requestJson(url, postBody, apiKey) {
       hostname: pu.hostname,
       path:     pu.pathname + pu.search,
       method:   'POST',
-      timeout:  15000,
+      timeout:  25000,
       headers: {
         'Authorization': 'Bearer ' + apiKey,
         'Content-Type':  'application/json',
@@ -144,80 +136,53 @@ function requestJson(url, postBody, apiKey) {
   });
 }
 
-// ── 响应解析 ─────────────────────────────────────────────────────────────────
+// 提取消息文本
 function getMessageText(body) {
   try {
     const choice = body && Array.isArray(body.choices) ? body.choices[0] : null;
     const msg    = choice && choice.message ? choice.message : null;
     if (!msg || !msg.content) return '';
     const c = msg.content;
-    if (typeof c === 'string') return c.trim();
+    if (typeof c === 'string') return cleanThinkTag(c).trim();
     if (Array.isArray(c)) {
-      return c.map((p) => {
-        if (typeof p === 'string') return p;
-        if (p && p.text)    return p.text;
-        if (p && p.content) return p.content;
-        return '';
-      }).join('').trim();
+      return cleanThinkTag(c.map(p => 
+        typeof p === 'string' ? p : (p && p.text) || (p && p.content) || ''
+      ).join('')).trim();
     }
-    return String(c).trim();
+    return cleanThinkTag(String(c)).trim();
   } catch (_) { return ''; }
 }
 
-function parseReport(text) {
-  const parsed = parseJson(text);
-  if (!parsed) return null;
-  const report = {
-    title:          cleanText(parsed.title          || '传统干支文化学习说明'),
-    summary:        cleanText(parsed.summary        || ''),
-    baziCultureNote:    cleanText(parsed.baziCultureNote    || ''),
-    fiveElementsNote:   cleanText(parsed.fiveElementsNote   || ''),
-    disclaimer:     DISCLAIMER
+function cleanThinkTag(text) {
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+}
+
+// 解析报告（非 JSON 格式 - 按段落拆分）
+function buildReport(text, input) {
+  const cleaned = cleanText(text);
+  if (!cleaned) return null;
+
+  // 按【】标题分拆
+  const parts = {};
+  const titleMatch = cleaned.match(/【文化概述】([\s\S]*?)(?=【|$)/);
+  const baziMatch  = cleaned.match(/【干支时间解读】([\s\S]*?)(?=【|$)/);
+  const fiveMatch  = cleaned.match(/【五行分类参考】([\s\S]*?)(?=【|$)/);
+
+  parts.title = '传统干支文化参考';
+  parts.summary = (titleMatch ? titleMatch[1].trim() : cleaned.substring(0, 150).trim()) || '传统文化学习说明';
+  parts.baziCultureNote = (baziMatch ? baziMatch[1].trim() : '干支文化常用天干、地支与节气来记录时间。') || '干支文化学习参考';
+  parts.fiveElementsNote = (fiveMatch ? fiveMatch[1].trim() : '五行是传统文化中的分类方式。') || '五行文化学习参考';
+
+  return {
+    title: parts.title,
+    summary: parts.summary,
+    baziCultureNote: parts.baziCultureNote,
+    fiveElementsNote: parts.fiveElementsNote,
+    disclaimer: DISCLAIMER
   };
-  // 至少需要 summary
-  if (!report.summary) return null;
-  return report;
 }
 
-function parseJson(text) {
-  if (!text) return null;
-  // 去除 markdown 代码块
-  let cleaned = String(text)
-    .replace(/<\/?think>[\s\S]*?<\/?think>/gi, '')
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
-  // 候选字符串
-  const candidates = [cleaned];
-  const fenced = String(text).match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced && fenced[1]) candidates.push(fenced[1].trim());
-
-  // 找到第一个 {...} 块
-  const start = cleaned.indexOf('{');
-  if (start >= 0) {
-    let depth = 0, inStr = false, esc = false;
-    for (let i = start; i < cleaned.length; i++) {
-      const ch = cleaned[i];
-      if (esc)       { esc = false;  continue; }
-      if (ch === '\\') { esc = true;  continue; }
-      if (ch === '"') { inStr = !inStr; continue; }
-      if (inStr) continue;
-      if (ch === '{') depth++;
-      if (ch === '}') depth--;
-      if (depth === 0) {
-        candidates.push(cleaned.slice(start, i + 1));
-        break;
-      }
-    }
-  }
-
-  for (const c of [...new Set(candidates.filter(Boolean))]) {
-    try { return JSON.parse(c); } catch (_) {}
-  }
-  return null;
-}
-
+// 文本清洁
 function cleanText(v) {
   if (!v) return '';
   return String(v)
@@ -235,7 +200,7 @@ function cleanText(v) {
     .trim();
 }
 
-// ── 错误返回 ──────────────────────────────────────────────────────────────────
+// 错误返回
 function errorResult(err, msg) {
   return {
     ok: false,
@@ -243,7 +208,6 @@ function errorResult(err, msg) {
     model: MODEL,
     error: err,
     message: msg,
-    // 前端 result.js 期望 report 结构，错误时也保持一致
     report: {
       title: '分析暂不可用',
       summary: msg,
