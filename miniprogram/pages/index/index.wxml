@@ -1,5 +1,5 @@
 <view class="container">
-  <view class="title">八字分析</view>
+  <view class="title">今日人设签</view>
   <view class="form">
     <view class="form-item">
       <text>生日</text>

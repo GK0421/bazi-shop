@@ -1,0 +1,15 @@
+{
+  "name": "persona-vibe-card-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "description": "今日人设签 Vibe Card workspace",
+  "workspaces": [
+    "backend"
+  ],
+  "scripts": {
+    "dev:api": "npm --prefix backend run dev",
+    "start:api": "npm --prefix backend start",
+    "check": "npm --prefix backend run check",
+    "open": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/open-project.ps1"
+  }
+}

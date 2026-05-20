@@ -1,4 +1,8 @@
 {
-  "appid": "replace_with_your_wechat_miniprogram_appid",
-  "projectname": "bazi-miniprogram"
+  "appid": "ttf41382ae6a74c90b02",
+  "projectname": "persona-vibe-card-local",
+  "setting": {
+    "urlCheck": false,
+    "autoCompile": true
+  }
 }

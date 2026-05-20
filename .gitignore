@@ -10,3 +10,4 @@ cloudfunctions/**/.env.local
 04_secrets_local/
 *.key
 *.pem
+douyin-miniprogram/__wxToTT/

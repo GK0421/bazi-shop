@@ -1,58 +1,89 @@
-# 八字便利店（bazi-shop）
+# 今日人设签 Vibe Card
 
-微信小程序：八字分析与传统文化学习工具
+这是一个已经切换为抖音小游戏结构的 `今日人设签 Vibe Card` 项目，代码位于 `D:\Develop\bazi-shop`，并连接到 GitHub 仓库 `https://github.com/GK0421/bazi-shop`。
 
-**方案B**：微信云函数调用大模型 API（MiniMax-M2.7）
+## 当前主入口
 
-GitHub：https://github.com/GK0421/bazi-shop
+根据抖音开放平台小游戏开发文档，小游戏项目的必要文件是根目录下的：
 
-## 项目结构
+- `game.js`
+- `game.json`
+- `project.config.json`
 
+本仓库已经按这个结构调整完成，当前主入口为：
+
+- [game.js](D:\Develop\bazi-shop\game.js)
+- [game.json](D:\Develop\bazi-shop\game.json)
+- [project.config.json](D:\Develop\bazi-shop\project.config.json)
+
+## 目录说明
+
+- [game](D:\Develop\bazi-shop\game): 抖音小游戏前端源码，基于 Canvas 直接渲染
+- [backend](D:\Develop\bazi-shop\backend): 本地 Node.js API，用于安全调用大模型
+- [douyin-miniprogram](D:\Develop\bazi-shop\douyin-miniprogram): 旧的抖音小程序版本，保留作参考
+- [miniprogram](D:\Develop\bazi-shop\miniprogram): 原微信小程序代码
+- [cloudfunctions](D:\Develop\bazi-shop\cloudfunctions): 原微信云函数代码
+
+## 本地开发
+
+1. 安装依赖
+
+```powershell
+cd D:\Develop\bazi-shop
+npm install
 ```
-bazi-shop/
-├── miniprogram/              # 小程序前端
-│   ├── pages/index/          # 表单页
-│   └── pages/result/         # 结果展示页
-├── cloudfunctions/           # 微信云函数
-│   └── analyzeBazi/          # 八字分析云函数
-├── docs/                     # 架构文档
-├── scripts/                  # 工具脚本
-├── .gitignore
-├── README.md
-├── LICENSE（MIT）
-└── NOTICE
+
+2. 启动本地 API
+
+```powershell
+npm run dev:api
 ```
 
-## 技术架构
+3. 用抖音开发者工具打开根目录
 
-- **前端**：微信小程序（miniprogram）
-- **后端**：微信云函数（Cloud Functions）
-- **大模型**：MiniMax-M2.7（通过云函数环境变量保护 API Key）
-- **API Key**：仅存于微信云函数环境变量，不写入前端代码
+```text
+D:\Develop\bazi-shop
+```
 
-## 快速开始
+4. 在开发者工具里选择“小游戏”导入方式
 
-1. 安装 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
-2. 导入项目目录：`D:\bazi-miniprogram-env\02_workspace\bazi-miniprogram`
-3. 开通云开发环境（点击「云开发」按钮）
-4. 在云函数 `analyzeBazi` 的设置中配置环境变量：
-   - `LLM_PROVIDER = minimax`
-   - `LLM_BASE_URL = https://api.minimax.chat/v1`
-   - `LLM_MODEL = MiniMax-M2.7`
-   - `LLM_API_KEY = 你的 MiniMax Token`
-5. 上传并部署云函数
-6. 编译运行
+## 当前玩法
+
+小游戏版不是页面表单，而是一个竖屏、单画布的轻内容体验：
+
+- `今日人设签 Vibe Card` 品牌化首页
+- 年/月/日/时的触控步进器
+- 性别与出生地的标签选择
+- 人设签生成加载动画
+- 适合一屏看完的短卡结果
 
 ## 环境变量
 
-配置在微信云函数控制台，详见 `docs/方案B_云函数调用大模型架构.md`。
+后端支持以下变量：
 
-## 注意事项
+- `LLM_API_KEY`
+- `MINIMAX_API_KEY`
+- `LLM_BASE_URL`
+- `LLM_MODEL`
+- `PORT`
 
-- API Key 严禁写入前端代码
-- `.env.local` 和 `project.private.config.json` 不得提交 Git
-- 八字分析仅供娱乐和文化学习参考，不构成专业建议
+可复制 [backend/.env.example](D:\Develop\bazi-shop\backend\.env.example) 为 `backend/.env` 后填写。
 
-## 许可证
+## AppID
 
-MIT License，详见 LICENSE 与 NOTICE。
+当前项目已配置你的抖音小游戏 `AppID`：
+
+- `ttf41382ae6a74c90b02`
+
+已同步写入：
+
+- [project.config.json](D:\Develop\bazi-shop\project.config.json)
+- `project.private.config.json`
+
+## 常用命令
+
+```powershell
+npm run dev:api
+npm run check
+npm run open
+```
