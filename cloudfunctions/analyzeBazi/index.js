@@ -22,9 +22,12 @@ exports.main = async (event) => {
     // ── 1. 读取配置：优先环境变量，fallback 为内嵌值（部署后腾讯云自动读取环境变量）───
     const baseUrl = (process.env.LLM_BASE_URL || 'https://api.minimax.chat/v1').replace(/\/+$/, '');
     const envApiKey = process.env.LLM_API_KEY;
-    // 部署时优先读取云函数环境变量；本地测试/未配置时用以下 fallback
-    const apiKey = envApiKey && envApiKey.trim() ? envApiKey.trim()
-               : 'sk-cp-dRJYOdaBlHFGfZC6TBjj9NYPFrkqL0Q1lXLRgXUHyjtUrMcRPodcZVoxQb747-YBPoX0xDu5FnL1nL-EEhbha4mCU863HUnZCwvb86OW4huEpSQtULRCJHU';
+    // 环境变量必须由云开发控制台配置，不提供 fallback
+    const apiKey = envApiKey && envApiKey.trim() ? envApiKey.trim() : '';
+
+    if (!apiKey) {
+      return errorResult(ERR.MISSING_ENV, '请先在云开发控制台配置 LLM_API_KEY 环境变量。');
+    }
 
     if (!baseUrl) {
       return errorResult(ERR.MISSING_ENV, '请先在云函数配置中填写 LLM_BASE_URL 环境变量。');
