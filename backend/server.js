@@ -30,7 +30,7 @@ app.get("/health", (_req, res) => {
 app.get("/api/game-config", (_req, res) => {
   res.json({
     appName: "疯狂深渊",
-    appNameEn: "Cthulhu Pixel Roguelike",
+    appNameEn: "Mad Abyss",
     appid: "ttf41382ae6a74c90b02",
     audioManifestPath: "assets/audio/manifest.json",
     minimaxConfigured: Boolean(resolveMiniMaxKey())

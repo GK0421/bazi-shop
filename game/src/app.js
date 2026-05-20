@@ -1,6 +1,7 @@
 const {
   APP_NAME_CN,
   APP_NAME_EN,
+  APP_NAME_SUB,
   AUDIO_CONFIG,
   BUFFS,
   CHARACTERS,
@@ -37,6 +38,16 @@ const {
   setupPlatformHooks,
   shareRunResult
 } = require("./platform");
+const {
+  createVisualState,
+  getCharacterVisualKey,
+  getConsumableVisualKey,
+  getEnemyVisualKey,
+  getRoomBackgroundVisualKey,
+  getVisual,
+  getWeaponVisualKey,
+  initializeVisuals
+} = require("./visuals");
 
 const SCENES = {
   START: "start",
@@ -113,6 +124,7 @@ function createGame() {
       lastLaunchInfo: null
     },
     audio: createAudioState(AUDIO_CONFIG, systemInfo),
+    visuals: createVisualState(),
     releaseFlags: {
       shareEnabled: Boolean(tt.shareAppMessage),
       sidebarEnabled: Boolean(tt.navigateToScene)
@@ -122,6 +134,7 @@ function createGame() {
   hydratePersistentState(state);
   state.showTutorial = !state.tutorialSeen;
   initializeAudio(state.audio);
+  initializeVisuals(state.visuals);
   setAudioEnabled(state.audio, state.audio.enabled);
   setupPlatformHooks(state, SCENES);
   syncSceneAudio(state);
@@ -1496,6 +1509,7 @@ function render(state) {
 
   ctx.save();
   ctx.scale(state.scale, state.scale);
+  ctx.imageSmoothingEnabled = false;
   drawBackground(state);
   state.buttons = [];
 
@@ -1538,13 +1552,82 @@ function fitCanvasToReference(state) {
   state.scale = Math.min(state.width / CONFIG.width, state.height / CONFIG.height);
 }
 
+function getRoomCount() {
+  return ROOM_FLOW.length;
+}
+
+function getCurrentRoomType(state) {
+  if (state.room && state.room.type) {
+    return state.room.type;
+  }
+  return "normal";
+}
+
+function getVisualImage(state, key) {
+  return getVisual(state.visuals, key);
+}
+
+function drawCoverImage(ctx, image, x, y, width, height, alpha) {
+  if (!image || !image.width || !image.height) {
+    return false;
+  }
+
+  const scale = Math.max(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const offsetX = x + (width - drawWidth) / 2;
+  const offsetY = y + (height - drawHeight) / 2;
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  if (alpha !== undefined) {
+    ctx.globalAlpha = alpha;
+  }
+  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+  ctx.restore();
+  return true;
+}
+
+function drawContainedImage(ctx, image, x, y, width, height, alpha) {
+  if (!image || !image.width || !image.height) {
+    return false;
+  }
+
+  const scale = Math.min(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const offsetX = x + (width - drawWidth) / 2;
+  const offsetY = y + (height - drawHeight) / 2;
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  if (alpha !== undefined) {
+    ctx.globalAlpha = alpha;
+  }
+  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+  ctx.restore();
+  return true;
+}
+
 function drawBackground(state) {
   const ctx = state.ctx;
-  const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-  gradient.addColorStop(0, PALETTE.bg);
-  gradient.addColorStop(0.65, "#120B22");
-  gradient.addColorStop(1, "#06060B");
-  ctx.fillStyle = gradient;
+  const backgroundKey = getRoomBackgroundVisualKey(getCurrentRoomType(state));
+  const backgroundImage = getVisualImage(state, backgroundKey);
+
+  if (!drawCoverImage(ctx, backgroundImage, 0, 0, CONFIG.width, CONFIG.height, 1)) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
+    gradient.addColorStop(0, PALETTE.bg);
+    gradient.addColorStop(0.65, "#120B22");
+    gradient.addColorStop(1, "#06060B");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+  }
+
+  const overlay = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
+  overlay.addColorStop(0, "rgba(6,6,10,0.18)");
+  overlay.addColorStop(0.55, "rgba(8,6,16,0.34)");
+  overlay.addColorStop(1, "rgba(4,4,8,0.68)");
+  ctx.fillStyle = overlay;
   ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
 
   for (let i = 0; i < state.ambientParticles.length; i += 1) {
@@ -1574,40 +1657,55 @@ function drawBackground(state) {
 
 function drawStartScene(state) {
   const ctx = state.ctx;
+  const selectedCharacter = CHARACTERS[state.selectedCharacterId];
+  const selectedVisual = getVisualImage(state, getCharacterVisualKey(state.selectedCharacterId));
 
-  drawText(ctx, APP_NAME_CN, CONFIG.width / 2, 174, {
+  drawText(ctx, APP_NAME_CN, CONFIG.width / 2, 154, {
     size: 54,
     weight: "700",
     color: PALETTE.white,
     align: "center"
   });
-  drawText(ctx, APP_NAME_EN, CONFIG.width / 2, 218, {
-    size: 20,
-    color: PALETTE.parchmentDim,
-    align: "center"
-  });
-  drawText(ctx, "3 分钟一局的克苏鲁竖屏肉鸽", CONFIG.width / 2, 270, {
-    size: 20,
+  drawText(ctx, APP_NAME_SUB, CONFIG.width / 2, 204, {
+    size: 22,
     color: PALETTE.gold,
     align: "center"
   });
+  drawText(ctx, APP_NAME_EN, CONFIG.width / 2, 238, {
+    size: 18,
+    color: PALETTE.parchmentDim,
+    align: "center"
+  });
+  drawText(ctx, "更长关卡、更强像素风、更完整的深渊推进", CONFIG.width / 2, 278, {
+    size: 18,
+    color: PALETTE.parchment,
+    align: "center"
+  });
 
-  drawPanel(ctx, 64, 322, 592, 286, 28);
-  drawText(ctx, "玩法摘要", 96, 368, {
+  drawPanel(ctx, 58, 320, 604, 314, 28);
+  drawText(ctx, "像素调查简报", 92, 364, {
     size: 22,
     weight: "700",
     color: PALETTE.parchment
   });
   drawParagraph(ctx, [
-    "1. 四名调查员可随时切换，每人代表一种解法。",
-    "2. 疯狂值越高，输出越猛，但失控风险也越大。",
-    "3. 八个房间一气呵成，祭坛、精英与 Boss 都会逼你做取舍。"
-  ], 96, 408, 530, 34, {
-    size: 18,
+    "1. 四名调查员可随时切换，每人都有不同的保命与爆发手段。",
+    "2. 疯狂值越高，伤害越夸张，但满槽失控会立刻反咬你。",
+    `3. 本版共有 ${getRoomCount()} 个房间，战斗波次明显加长，祭坛、安全区与 Boss 都还在。`
+  ], 92, 404, 330, 34, {
+    size: 16,
     color: PALETTE.parchmentDim
   });
+  if (selectedVisual) {
+    drawContainedImage(ctx, selectedVisual, 446, 352, 170, 246, 1);
+  }
+  drawText(ctx, `${selectedCharacter.title} · ${selectedCharacter.shortName}`, 528, 598, {
+    size: 16,
+    color: selectedCharacter.color,
+    align: "center"
+  });
 
-  drawText(ctx, "选择本局起始调查员", 96, 654, {
+  drawText(ctx, "选择本局起始调查员", 92, 674, {
     size: 20,
     weight: "700",
     color: PALETTE.white
@@ -1616,36 +1714,32 @@ function drawStartScene(state) {
   const chars = CHARACTER_ORDER;
   for (let i = 0; i < chars.length; i += 1) {
     const charData = CHARACTERS[chars[i]];
-    const rect = { x: 52 + i * 156, y: 694, width: 140, height: 146 };
+    const rect = { x: 48 + i * 157, y: 712, width: 146, height: 182 };
     drawCardPanel(ctx, rect, charData.color);
     if (state.selectedCharacterId === chars[i]) {
       ctx.strokeStyle = PALETTE.gold;
       ctx.lineWidth = 3;
-      roundRect(ctx, rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6, 22);
+      roundRect(ctx, rect.x - 4, rect.y - 4, rect.width + 8, rect.height + 8, 4);
       ctx.stroke();
     }
-    drawText(ctx, charData.title, rect.x + rect.width / 2, rect.y + 28, {
-      size: 16,
+    drawText(ctx, charData.title, rect.x + rect.width / 2, rect.y + 24, {
+      size: 14,
       color: charData.color,
       align: "center"
     });
-    drawText(ctx, charData.shortName, rect.x + rect.width / 2, rect.y + 58, {
-      size: 24,
+    drawContainedImage(ctx, getVisualImage(state, getCharacterVisualKey(chars[i])), rect.x + 18, rect.y + 28, 110, 92, 1);
+    drawText(ctx, charData.shortName, rect.x + rect.width / 2, rect.y + 134, {
+      size: 22,
       weight: "700",
       color: PALETTE.white,
       align: "center"
     });
-    drawText(ctx, `HP ${charData.hp}`, rect.x + rect.width / 2, rect.y + 88, {
-      size: 14,
+    drawText(ctx, `HP ${charData.hp} · ${charData.skillName}`, rect.x + rect.width / 2, rect.y + 158, {
+      size: 11,
       color: PALETTE.parchmentDim,
       align: "center"
     });
-    drawText(ctx, charData.skillName, rect.x + rect.width / 2, rect.y + 110, {
-      size: 12,
-      color: PALETTE.parchmentDim,
-      align: "center"
-    });
-    drawText(ctx, state.selectedCharacterId === chars[i] ? "本局起点" : "点击选择", rect.x + rect.width / 2, rect.y + 132, {
+    drawText(ctx, state.selectedCharacterId === chars[i] ? "本局起点" : "点击选择", rect.x + rect.width / 2, rect.y + 174, {
       size: 12,
       color: state.selectedCharacterId === chars[i] ? PALETTE.gold : PALETTE.parchmentDim,
       align: "center"
@@ -1659,7 +1753,7 @@ function drawStartScene(state) {
     });
   }
 
-  const startButton = { x: 118, y: 896, width: 484, height: 92 };
+  const startButton = { x: 118, y: 918, width: 484, height: 92 };
   drawPrimaryButton(ctx, startButton, "进入深渊", `以 ${CHARACTERS[state.selectedCharacterId].shortName} 作为本局主角`);
   state.buttons.push({
     rect: startButton,
@@ -1668,8 +1762,8 @@ function drawStartScene(state) {
     }
   });
 
-  const tutorialButton = { x: 118, y: 1006, width: 230, height: 68 };
-  const audioButton = { x: 372, y: 1006, width: 230, height: 68 };
+  const tutorialButton = { x: 118, y: 1030, width: 230, height: 68 };
+  const audioButton = { x: 372, y: 1030, width: 230, height: 68 };
   drawGhostButton(ctx, tutorialButton, "玩法说明");
   drawGhostButton(ctx, audioButton, state.audio.enabled ? "音频：开启" : "音频：关闭");
   state.buttons.push({
@@ -1687,19 +1781,19 @@ function drawStartScene(state) {
   });
 
   if (state.platform.pendingRunShield > 0) {
-    drawText(ctx, `已存入回访奖励：下一局护盾 +${state.platform.pendingRunShield}`, CONFIG.width / 2, 1086, {
+    drawText(ctx, `已存入回访奖励：下一局护盾 +${state.platform.pendingRunShield}`, CONFIG.width / 2, 1112, {
       size: 15,
       color: PALETTE.gold,
       align: "center"
     });
   }
-  drawText(ctx, `最佳记录：${state.bestRecord.victory ? "已通关" : "未通关"} · 房间 ${state.bestRecord.roomsCleared} · 击杀 ${state.bestRecord.kills}`, CONFIG.width / 2, 1114, {
+  drawText(ctx, `最佳记录：${state.bestRecord.victory ? "已通关" : "未通关"} · 房间 ${state.bestRecord.roomsCleared} · 击杀 ${state.bestRecord.kills}`, CONFIG.width / 2, 1140, {
     size: 16,
     color: PALETTE.parchmentDim,
     align: "center"
   });
-  drawText(ctx, "左手摇杆移动，武器自动射击，右侧技能与换人决定你的 Build 节奏。", CONFIG.width / 2, 1150, {
-    size: 16,
+  drawText(ctx, "左手摇杆移动，武器自动射击，右侧技能与换人决定你的 Build 节奏。", CONFIG.width / 2, 1172, {
+    size: 15,
     color: PALETTE.parchmentDim,
     align: "center"
   });
@@ -1726,10 +1820,15 @@ function drawArena(state) {
   ctx.clip();
 
   const roomTint = getRoomTint(state.room ? state.room.type : "normal");
-  const gradient = ctx.createLinearGradient(arena.x, arena.y, arena.x + arena.width, arena.y + arena.height);
-  gradient.addColorStop(0, roomTint.top);
-  gradient.addColorStop(1, roomTint.bottom);
-  ctx.fillStyle = gradient;
+  const bgImage = getVisualImage(state, getRoomBackgroundVisualKey(getCurrentRoomType(state)));
+  if (!drawCoverImage(ctx, bgImage, arena.x, arena.y, arena.width, arena.height, 0.92)) {
+    const gradient = ctx.createLinearGradient(arena.x, arena.y, arena.x + arena.width, arena.y + arena.height);
+    gradient.addColorStop(0, roomTint.top);
+    gradient.addColorStop(1, roomTint.bottom);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(arena.x, arena.y, arena.width, arena.height);
+  }
+  ctx.fillStyle = withAlpha(roomTint.bottom, 0.38);
   ctx.fillRect(arena.x, arena.y, arena.width, arena.height);
 
   for (let i = 0; i < 6; i += 1) {
@@ -1764,39 +1863,43 @@ function drawTopHud(state) {
   const ctx = state.ctx;
   const player = state.player;
   const charData = CHARACTERS[player.characterId];
+  const portrait = getVisualImage(state, getCharacterVisualKey(player.characterId));
 
-  drawText(ctx, APP_NAME_CN, 34, 44, {
-    size: 22,
+  drawCardPanel(ctx, { x: 20, y: 14, width: 62, height: 62 }, charData.color);
+  drawContainedImage(ctx, portrait, 23, 17, 56, 56, 1);
+
+  drawText(ctx, APP_NAME_CN, 94, 40, {
+    size: 20,
     weight: "700",
     color: PALETTE.parchment
   });
-  drawText(ctx, `${charData.title} · ${charData.shortName}`, 34, 74, {
-    size: 15,
+  drawText(ctx, `${charData.title} · ${charData.shortName}`, 94, 68, {
+    size: 14,
     color: charData.color
   });
 
-  drawHudBar(ctx, 188, 28, 244, 18, player.hp / Math.max(1, player.maxHp), PALETTE.blood);
-  drawText(ctx, `HP ${Math.max(0, Math.round(player.hp))}/${player.maxHp}`, 310, 43, {
+  drawHudBar(ctx, 224, 24, 220, 18, player.hp / Math.max(1, player.maxHp), PALETTE.blood);
+  drawText(ctx, `HP ${Math.max(0, Math.round(player.hp))}/${player.maxHp}`, 334, 39, {
     size: 12,
     color: PALETTE.white,
     align: "center"
   });
 
-  drawHudBar(ctx, 462, 28, 124, 12, player.madness / Math.max(1, player.maxMadness), PALETTE.accent);
-  drawText(ctx, `狂 ${Math.round(player.madness)}`, 594, 40, {
+  drawHudBar(ctx, 470, 24, 116, 12, player.madness / Math.max(1, player.maxMadness), PALETTE.accent);
+  drawText(ctx, `狂 ${Math.round(player.madness)}`, 594, 36, {
     size: 12,
     color: PALETTE.parchment,
     align: "right"
   });
 
-  drawHudBar(ctx, 462, 50, 124, 12, player.sanity / Math.max(1, player.maxSanity), PALETTE.blue);
-  drawText(ctx, `智 ${Math.round(player.sanity)}`, 594, 62, {
+  drawHudBar(ctx, 470, 48, 116, 12, player.sanity / Math.max(1, player.maxSanity), PALETTE.blue);
+  drawText(ctx, `智 ${Math.round(player.sanity)}`, 594, 60, {
     size: 12,
     color: PALETTE.parchment,
     align: "right"
   });
 
-  drawText(ctx, state.room ? `房间 ${state.room.id}/8 · ${state.room.name}` : "房间 0/8", 462, 84, {
+  drawText(ctx, state.room ? `房间 ${state.room.id}/${getRoomCount()} · ${state.room.name}` : `房间 0/${getRoomCount()}`, 454, 82, {
     size: 14,
     color: PALETTE.gold
   });
@@ -1831,21 +1934,25 @@ function drawBottomHud(state) {
   const player = state.player;
   const charData = CHARACTERS[player.characterId];
   const y = CONFIG.height - CONFIG.bottomHudHeight;
+  const weaponIcon = getVisualImage(state, getWeaponVisualKey(player.currentWeapon));
+  const supplyIcon = getVisualImage(state, player.consumables.healthPotion > 0 ? "consHealth" : getConsumableVisualKey("sanityEssence"));
+  const activePortrait = getVisualImage(state, getCharacterVisualKey(player.characterId));
 
   drawPanel(ctx, 18, y, CONFIG.width - 36, 140, 28);
 
   const weaponRect = { x: 36, y: y + 18, width: 180, height: 94 };
   drawCardPanel(ctx, weaponRect, WEAPONS[player.currentWeapon].color);
-  drawText(ctx, WEAPONS[player.currentWeapon].name, weaponRect.x + 20, weaponRect.y + 30, {
+  drawContainedImage(ctx, weaponIcon, weaponRect.x + 10, weaponRect.y + 14, 52, 52, 1);
+  drawText(ctx, WEAPONS[player.currentWeapon].name, weaponRect.x + 74, weaponRect.y + 30, {
     size: 17,
     weight: "700",
     color: PALETTE.white
   });
-  drawText(ctx, WEAPONS[player.currentWeapon].description, weaponRect.x + 20, weaponRect.y + 58, {
+  drawText(ctx, WEAPONS[player.currentWeapon].description, weaponRect.x + 74, weaponRect.y + 54, {
     size: 12,
     color: PALETTE.parchmentDim
   });
-  drawText(ctx, `武器 ${player.weapons.length} / 5`, weaponRect.x + 20, weaponRect.y + 80, {
+  drawText(ctx, `武器 ${player.weapons.length} / 5`, weaponRect.x + 74, weaponRect.y + 78, {
     size: 12,
     color: PALETTE.gold
   });
@@ -1857,6 +1964,9 @@ function drawBottomHud(state) {
   drawActionButton(ctx, skillRect, charData.skillName, player.skillCooldown > 0 ? `${Math.ceil(player.skillCooldown)}s` : "技能", player.skillCooldown <= 0);
   drawActionButton(ctx, itemRect, "补给", `药 ${player.consumables.healthPotion} / 智 ${player.consumables.sanityEssence}`, true);
   drawActionButton(ctx, switchRect, "切换调查员", player.switchCooldown > 0 ? `${Math.ceil(player.switchCooldown)}s` : "四人可切换", player.switchCooldown <= 0);
+  drawContainedImage(ctx, activePortrait, skillRect.x + 36, skillRect.y + 6, 50, 40, 0.88);
+  drawContainedImage(ctx, supplyIcon, itemRect.x + 34, itemRect.y + 8, 52, 42, 0.9);
+  drawContainedImage(ctx, activePortrait, switchRect.x + 56, switchRect.y + 8, 54, 42, 0.72);
 
   state.buttons.push({
     rect: skillRect,
@@ -1921,68 +2031,87 @@ function drawEntities(state) {
 function drawPlayer(state) {
   const ctx = state.ctx;
   const player = state.player;
+  const sprite = getVisualImage(state, getCharacterVisualKey(player.characterId));
 
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  if (player.outOfControlTimer > 0) {
-    ctx.rotate(Math.sin(state.now * 18) * 0.24);
+  if (sprite && sprite.width) {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    if (player.outOfControlTimer > 0) {
+      ctx.rotate(Math.sin(state.now * 18) * 0.24);
+    }
+    ctx.translate(-player.x, -player.y);
+    drawContainedImage(ctx, sprite, player.x - 34, player.y - 46, 68, 88, 1);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    if (player.outOfControlTimer > 0) {
+      ctx.rotate(Math.sin(state.now * 18) * 0.24);
+    }
+    ctx.fillStyle = player.color;
+    ctx.beginPath();
+    ctx.moveTo(0, -18);
+    ctx.lineTo(15, 0);
+    ctx.lineTo(0, 18);
+    ctx.lineTo(-15, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
-  ctx.fillStyle = player.color;
-  ctx.beginPath();
-  ctx.moveTo(0, -18);
-  ctx.lineTo(15, 0);
-  ctx.lineTo(0, 18);
-  ctx.lineTo(-15, 0);
-  ctx.closePath();
-  ctx.fill();
 
   if (player.shield > 0) {
     ctx.strokeStyle = "#F7D05A";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(0, 0, 26, 0, Math.PI * 2);
+    ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
     ctx.stroke();
   }
-
-  ctx.restore();
 }
 
 function drawEnemy(state, enemy) {
   const ctx = state.ctx;
-  ctx.save();
-  ctx.translate(enemy.x, enemy.y);
+  const sprite = getVisualImage(state, getEnemyVisualKey(enemy.id));
 
-  if (enemy.boss) {
-    ctx.fillStyle = enemy.color;
-    ctx.beginPath();
-    ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#FFF5D8";
-    ctx.beginPath();
-    ctx.arc(0, 0, 22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#120812";
-    ctx.beginPath();
-    ctx.arc(0, 0, 10, 0, Math.PI * 2);
-    ctx.fill();
+  if (sprite && sprite.width) {
+    const width = enemy.boss ? 168 : enemy.radius * 3.2;
+    const height = enemy.boss ? 190 : enemy.radius * 3.6;
+    drawContainedImage(ctx, sprite, enemy.x - width / 2, enemy.y - height / 2, width, height, 1);
   } else {
-    ctx.fillStyle = enemy.color;
-    ctx.beginPath();
-    ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.14)";
-    ctx.fillRect(-enemy.radius * 0.75, -enemy.radius * 0.3, enemy.radius * 1.5, enemy.radius * 0.6);
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    if (enemy.boss) {
+      ctx.fillStyle = enemy.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#FFF5D8";
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#120812";
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = enemy.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      ctx.fillRect(-enemy.radius * 0.75, -enemy.radius * 0.3, enemy.radius * 1.5, enemy.radius * 0.6);
+    }
+
+    ctx.restore();
   }
 
   if (state.player.markedEnemyId === enemy.id) {
     ctx.strokeStyle = "#FFD166";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(0, 0, enemy.radius + 10, 0, Math.PI * 2);
+    ctx.arc(enemy.x, enemy.y, enemy.radius + 10, 0, Math.PI * 2);
     ctx.stroke();
   }
-
-  ctx.restore();
 
   drawMiniHpBar(ctx, enemy.x - 24, enemy.y - enemy.radius - 16, 48, enemy.hp / enemy.maxHp, enemy.boss ? "#FF8A7A" : enemy.color);
 }
@@ -2043,7 +2172,7 @@ function drawRoomIntroCard(state) {
 
   drawOverlay(ctx, 0.42);
   drawPanel(ctx, 120, 402, 480, 220, 28);
-  drawText(ctx, `房间 ${room.id} / 8`, CONFIG.width / 2, 470, {
+  drawText(ctx, `房间 ${room.id} / ${getRoomCount()}`, CONFIG.width / 2, 470, {
     size: 20,
     color: PALETTE.gold,
     align: "center"
@@ -2234,7 +2363,7 @@ function drawGameOverScene(state) {
 function drawPauseScene(state) {
   const ctx = state.ctx;
   const surviveSeconds = Math.max(0, Math.floor(state.now - state.runStartAt));
-  const progressTitle = state.room ? `房间 ${state.room.id}/8 · ${state.room.name}` : "暂停中";
+  const progressTitle = state.room ? `房间 ${state.room.id}/${getRoomCount()} · ${state.room.name}` : "暂停中";
 
   drawOverlay(ctx, 0.72);
   drawPanel(ctx, 74, 182, 572, 760, 34);
@@ -2335,7 +2464,7 @@ function drawTutorialOverlay(state) {
     color: PALETTE.white,
     align: "center"
   });
-  drawText(ctx, "3 分钟一局，目标是在疯狂失控前穿过 8 个房间。", CONFIG.width / 2, 224, {
+  drawText(ctx, `更长的一局，目标是在疯狂失控前穿过 ${getRoomCount()} 个房间。`, CONFIG.width / 2, 224, {
     size: 18,
     color: PALETTE.gold,
     align: "center"
@@ -2508,21 +2637,49 @@ function drawOptionCard(ctx, rect, title, body, accent) {
   });
 }
 
-function drawCardPanel(ctx, rect, accent) {
-  roundRect(ctx, rect.x, rect.y, rect.width, rect.height, 20);
-  ctx.fillStyle = "rgba(255,255,255,0.05)";
+function drawPixelFrame(ctx, x, y, width, height, fill, stroke, shadow) {
+  const notch = 8;
+
+  ctx.save();
+  if (shadow) {
+    ctx.fillStyle = shadow;
+    tracePixelFrame(ctx, x + 6, y + 6, width, height, notch);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = fill;
+  tracePixelFrame(ctx, x, y, width, height, notch);
   ctx.fill();
-  ctx.strokeStyle = withAlpha(accent, 0.7);
+
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 2;
+  tracePixelFrame(ctx, x + 1, y + 1, width - 2, height - 2, Math.max(4, notch - 2));
   ctx.stroke();
+  ctx.restore();
+}
+
+function tracePixelFrame(ctx, x, y, width, height, notch) {
+  ctx.beginPath();
+  ctx.moveTo(x + notch, y);
+  ctx.lineTo(x + width - notch, y);
+  ctx.lineTo(x + width, y + notch);
+  ctx.lineTo(x + width, y + height - notch);
+  ctx.lineTo(x + width - notch, y + height);
+  ctx.lineTo(x + notch, y + height);
+  ctx.lineTo(x, y + height - notch);
+  ctx.lineTo(x, y + notch);
+  ctx.closePath();
+}
+
+function drawCardPanel(ctx, rect, accent) {
+  drawPixelFrame(ctx, rect.x, rect.y, rect.width, rect.height, "rgba(12,10,22,0.90)", withAlpha(accent, 0.82), "rgba(0,0,0,0.32)");
 }
 
 function drawPrimaryButton(ctx, rect, title, subtitle) {
-  const gradient = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.width, rect.y);
-  gradient.addColorStop(0, PALETTE.accent);
-  gradient.addColorStop(1, PALETTE.blood);
-  roundRect(ctx, rect.x, rect.y, rect.width, rect.height, 999);
-  ctx.fillStyle = gradient;
-  ctx.fill();
+  const fill = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
+  fill.addColorStop(0, "#A84A56");
+  fill.addColorStop(1, "#61203D");
+  drawPixelFrame(ctx, rect.x, rect.y, rect.width, rect.height, fill, "#E4B96B", "rgba(0,0,0,0.36)");
   drawText(ctx, title, rect.x + rect.width / 2, rect.y + 32, {
     size: 24,
     weight: "700",
@@ -2539,11 +2696,7 @@ function drawPrimaryButton(ctx, rect, title, subtitle) {
 }
 
 function drawGhostButton(ctx, rect, title) {
-  roundRect(ctx, rect.x, rect.y, rect.width, rect.height, 999);
-  ctx.fillStyle = "rgba(255,255,255,0.03)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.12)";
-  ctx.stroke();
+  drawPixelFrame(ctx, rect.x, rect.y, rect.width, rect.height, "rgba(16,14,28,0.92)", "rgba(212,196,168,0.28)", "rgba(0,0,0,0.24)");
   drawText(ctx, title, rect.x + rect.width / 2, rect.y + 44, {
     size: 18,
     color: PALETTE.parchment,
@@ -2552,11 +2705,16 @@ function drawGhostButton(ctx, rect, title) {
 }
 
 function drawActionButton(ctx, rect, title, subtitle, enabled) {
-  roundRect(ctx, rect.x, rect.y, rect.width, rect.height, 18);
-  ctx.fillStyle = enabled ? "rgba(107,45,139,0.18)" : "rgba(255,255,255,0.04)";
-  ctx.fill();
-  ctx.strokeStyle = enabled ? "rgba(107,45,139,0.55)" : "rgba(255,255,255,0.08)";
-  ctx.stroke();
+  drawPixelFrame(
+    ctx,
+    rect.x,
+    rect.y,
+    rect.width,
+    rect.height,
+    enabled ? "rgba(34,20,54,0.92)" : "rgba(22,20,30,0.88)",
+    enabled ? "rgba(232,185,109,0.68)" : "rgba(255,255,255,0.12)",
+    "rgba(0,0,0,0.24)"
+  );
   drawText(ctx, title, rect.x + rect.width / 2, rect.y + 34, {
     size: 18,
     weight: "700",
@@ -2571,14 +2729,10 @@ function drawActionButton(ctx, rect, title, subtitle, enabled) {
 }
 
 function drawPanel(ctx, x, y, width, height, radius) {
-  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-  gradient.addColorStop(0, "rgba(24,18,40,0.95)");
-  gradient.addColorStop(1, "rgba(10,8,18,0.95)");
-  roundRect(ctx, x, y, width, height, radius);
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  ctx.strokeStyle = PALETTE.line;
-  ctx.stroke();
+  const fill = ctx.createLinearGradient(x, y, x, y + height);
+  fill.addColorStop(0, "rgba(21,17,36,0.96)");
+  fill.addColorStop(1, "rgba(8,7,14,0.96)");
+  drawPixelFrame(ctx, x, y, width, height, fill, "rgba(212,196,168,0.16)", "rgba(0,0,0,0.36)");
 }
 
 function drawHudBar(ctx, x, y, width, height, percent, color) {

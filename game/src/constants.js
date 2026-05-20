@@ -1,5 +1,6 @@
 const APP_NAME_CN = "疯狂深渊";
-const APP_NAME_EN = "Cthulhu Pixel Roguelike";
+const APP_NAME_EN = "Mad Abyss";
+const APP_NAME_SUB = "克苏鲁像素Roguelike";
 
 const ANALYSIS_CONFIG = {
   remoteUrl: "",
@@ -302,8 +303,8 @@ const ENEMIES = {
   boss: {
     id: "boss",
     name: "乌姆·亚特",
-    hp: 500,
-    speed: 46,
+    hp: 680,
+    speed: 52,
     damage: 22,
     radius: 72,
     color: "#B12E58",
@@ -319,51 +320,85 @@ const ROOM_FLOW = [
     type: "normal",
     name: "外环祭室",
     subtitle: "教学与热身",
-    waves: [["cultist", "cultist", "cultist"], ["cultist", "cultist", "watcher"]]
+    waves: [
+      ["cultist", "cultist", "cultist"],
+      ["cultist", "cultist", "mutant"],
+      ["cultist", "mutant", "cultist", "watcher"]
+    ]
   },
   {
     id: 2,
     type: "normal",
     name: "符文长廊",
     subtitle: "普通敌人混编",
-    waves: [["cultist", "mutant", "cultist"], ["cultist", "mutant", "watcher", "cultist"]]
+    waves: [
+      ["cultist", "mutant", "cultist"],
+      ["cultist", "mutant", "watcher", "cultist"],
+      ["mutant", "cultist", "watcher", "cultist", "cultist"]
+    ]
   },
   {
     id: 3,
     type: "elite",
     name: "鲜血回廊",
     subtitle: "首个精英压力点",
-    waves: [["zealot", "cultist", "cultist", "watcher"], ["cultist", "cultist", "mutant"]]
+    waves: [
+      ["zealot", "cultist", "cultist", "watcher"],
+      ["cultist", "cultist", "mutant", "watcher"],
+      ["mutant", "cultist", "mutant", "watcher"]
+    ]
   },
   {
     id: 4,
     type: "normal",
     name: "低语祭坑",
     subtitle: "密集波次",
-    waves: [["mutant", "cultist", "cultist"], ["watcher", "mutant", "cultist", "cultist"], ["mutant", "mutant", "watcher"]]
+    waves: [
+      ["mutant", "cultist", "cultist", "watcher"],
+      ["watcher", "mutant", "cultist", "cultist", "cultist"],
+      ["mutant", "mutant", "watcher", "watcher"],
+      ["cultist", "mutant", "watcher", "cultist", "mutant"]
+    ]
   },
   {
     id: 5,
     type: "elite",
     name: "深渊窥口",
     subtitle: "高压精英房",
-    waves: [["deepSpawn", "mutant", "watcher"], ["cultist", "mutant", "cultist"], ["memoryEater", "watcher", "watcher"]]
+    waves: [
+      ["deepSpawn", "mutant", "watcher"],
+      ["cultist", "mutant", "cultist", "watcher", "watcher"],
+      ["memoryEater", "watcher", "watcher", "cultist"],
+      ["mutant", "mutant", "watcher", "cultist", "cultist"]
+    ]
   },
   {
     id: 6,
+    type: "elite",
+    name: "遗骨回声厅",
+    subtitle: "更长波次与双精英混压",
+    waves: [
+      ["zealot", "cultist", "watcher", "mutant"],
+      ["deepSpawn", "cultist", "cultist", "watcher"],
+      ["memoryEater", "mutant", "watcher", "watcher", "cultist"],
+      ["zealot", "mutant", "mutant", "cultist", "watcher"]
+    ]
+  },
+  {
+    id: 7,
     type: "shrine",
     name: "古神祭坛",
     subtitle: "在祝福与诅咒间选择",
     choices: ["blessing", "curse", "merchant"]
   },
   {
-    id: 7,
+    id: 8,
     type: "rest",
     name: "过渡安全区",
     subtitle: "恢复生命与理智"
   },
   {
-    id: 8,
+    id: 9,
     type: "boss",
     name: "深渊心室",
     subtitle: "乌姆·亚特",
@@ -396,6 +431,7 @@ module.exports = {
   ANALYSIS_CONFIG,
   APP_NAME_CN,
   APP_NAME_EN,
+  APP_NAME_SUB,
   AUDIO_CONFIG,
   BUFFS,
   CHARACTERS,
