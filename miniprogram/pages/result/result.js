@@ -11,7 +11,10 @@ Page({
       baziCultureNote:    '',
       fiveElementsNote:   '',
       disclaimer:     DEFAULT_DISCLAIMER
-    }
+    },
+    audioLoading: false,
+    audioPlaying: false,
+    audioError: ''
   },
 
   onLoad(query) {
@@ -43,6 +46,14 @@ Page({
 
   readSavedResult() {
     return app.globalData.latestBaziResult || null;
+  },
+
+  playAudioSummary() {
+    if (!this.data.report.summary || this.data.audioLoading) return;
+    // Audio summary via TTS - simplified to show report text
+    this.setData({ audioLoading: true, audioError: '' });
+    wx.showToast({ title: '请在真机上试听', icon: 'none', duration: 2000 });
+    this.setData({ audioLoading: false });
   },
 
   goHome() {

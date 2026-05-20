@@ -22,13 +22,6 @@
     <view class="body-text">{{report.summary}}</view>
   </view>
 
-  <view class="audio-card">
-    <button class="audio-button" loading="{{audioLoading}}" disabled="{{audioLoading || !hasResult}}" bindtap="playAudioSummary">
-      {{audioPlaying ? '正在播放摘要' : '听听文化摘要'}}
-    </button>
-    <view wx:if="{{audioError}}" class="error-text">{{audioError}}</view>
-  </view>
-
   <view class="soft-card">
     <view class="section-title">干支文化解读</view>
     <view class="body-text">{{report.baziCultureNote}}</view>

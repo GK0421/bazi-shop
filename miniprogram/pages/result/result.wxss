@@ -1,40 +1,38 @@
+@import '/app.wxss';
+
 .info-line {
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   color: #234a45;
-  font-size: 30rpx;
-  line-height: 1.65;
+  font-size: 28rpx;
+  line-height: 1.6;
 }
 
 .disclaimer-card {
-  background: #fff4d6;
+  border: 2rpx solid #f0c65d;
+  background: #fffef5;
 }
 
 .audio-card {
-  margin: 28rpx 0;
+  margin-top: 28rpx;
   padding: 28rpx;
-  border-radius: 36rpx;
-  background: #fffaf0;
-  box-shadow: 0 14rpx 36rpx rgba(111, 78, 26, 0.12);
+  border-radius: 40rpx;
+  background: rgba(255, 252, 244, 0.96);
+  box-shadow: 0 18rpx 44rpx rgba(33, 76, 68, 0.13);
 }
 
 .audio-button {
-  height: 88rpx;
+  width: 100%;
+  height: 80rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #e7b64f 0%, #f4cf7a 100%);
-  color: #31564e;
-  font-size: 32rpx;
-  font-weight: 700;
-  box-shadow: 0 12rpx 28rpx rgba(202, 154, 52, 0.26);
-}
-
-.audio-button[disabled] {
-  opacity: 0.72;
+  background: #e8f5ee;
+  color: #0f5d55;
+  font-size: 30rpx;
+  font-weight: 800;
+  border: 2rpx solid #c3e0d0;
 }
 
 .error-text {
-  margin-top: 18rpx;
-  color: #b45b38;
+  margin-top: 12rpx;
+  color: #cc6600;
   font-size: 26rpx;
-  line-height: 1.5;
-  text-align: center;
 }
