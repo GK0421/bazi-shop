@@ -1,29 +1,26 @@
-<view class="container">
-  <view class="title">八字分析</view>
-  <view class="form">
-    <view class="form-item">
-      <text>生日</text>
-      <picker mode="date" bindchange="onBirthdayChange">
-        <view class="picker">{{birthday || '请选择生日'}}</view>
-      </picker>
+<view class="page index-page">
+  <view class="hero-card shop-card">
+    <view class="tag-row">
+      <text class="note-tag">轻量国风</text>
+      <text class="note-tag gold">文化小报告</text>
     </view>
-    <view class="form-item">
-      <text>时辰</text>
-      <picker mode="selector" range="{{hours}}" bindchange="onHourChange">
-        <view class="picker">{{hours[hourIndex] || '请选择时辰'}}</view>
-      </picker>
+    <view class="title">八字便利店</view>
+    <view class="subtitle">把出生时间整理成一份传统干支文化小报告</view>
+    <view class="body-text">
+      输入生日和时间，看看干支、五行和传统文化解释如何描述你的时间信息。
     </view>
-    <view class="form-item">
-      <text>性别</text>
-      <radio-group bindchange="onGenderChange">
-        <label><radio value="男" checked="{{gender==='男'}}"/>男</label>
-        <label><radio value="女" checked="{{gender==='女'}}"/>女</label>
-      </radio-group>
+    <button class="primary-button" bindtap="goForm">开始生成</button>
+    <button class="secondary-button" bindtap="goAbout">了解项目</button>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">小小提示</view>
+    <view class="body-text">
+      这里只做传统文化概念说明。页面会在云函数暂不可用时给出提示，不会空白卡住。
     </view>
-    <view class="form-item">
-      <text>出生地</text>
-      <input placeholder="选填，如：北京" value="{{location}}" bindinput="onLocationInput" />
-    </view>
-    <button type="primary" bindtap="submit">开始分析</button>
+  </view>
+
+  <view class="footer-note">
+    本内容仅供传统干支文化学习与娱乐参考，不构成医疗、投资、婚姻、职业或其他现实决策依据。
   </view>
 </view>

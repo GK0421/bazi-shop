@@ -1,0 +1,3 @@
+<view class="disclaimer-wrapper">
+  <text class="disclaimer-text">{{text}}</text>
+</view>

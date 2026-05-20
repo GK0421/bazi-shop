@@ -7,6 +7,10 @@ dist/
 project.private.config.json
 cloudfunctions/**/.env
 cloudfunctions/**/.env.local
+cloudfunctions/**/env.json
 04_secrets_local/
 *.key
 *.pem
+
+cloudfunctions/*/config.json
+**/config.json.env

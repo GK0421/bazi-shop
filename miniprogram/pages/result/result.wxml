@@ -1,4 +1,41 @@
-<view class="container">
-  <view class="result">{{result}}</view>
-  <view class="disclaimer">以上内容仅供娱乐和文化学习参考，不构成任何专业建议。</view>
+<view class="page">
+  <view class="hero-card">
+    <view class="tag-row">
+      <text class="note-tag">个人文化小报告</text>
+      <text class="note-tag gold">娱乐参考</text>
+    </view>
+    <view class="title">你的干支文化小报告</view>
+    <view class="subtitle">{{report.title}}</view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">时间信息</view>
+    <view class="info-line">阳历生日：{{input.birthday || '未填写'}}</view>
+    <view class="info-line">出生时间：{{input.hour || '未填写'}}</view>
+    <view class="info-line">性别：{{input.gender || '未填写'}}</view>
+    <view class="info-line">出生地：{{input.location || '未填写'}}</view>
+    <view class="info-line">姓名：{{input.name || '未填写'}}</view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">AI辅助说明</view>
+    <view class="body-text">{{report.summary}}</view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">干支文化解读</view>
+    <view class="body-text">{{report.baziCultureNote}}</view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">五行结构观察</view>
+    <view class="body-text">{{report.fiveElementsNote}}</view>
+  </view>
+
+  <view class="soft-card disclaimer-card">
+    <view class="section-title">使用提醒</view>
+    <view class="body-text">{{report.disclaimer}}</view>
+  </view>
+
+  <button class="primary-button" bindtap="goHome">返回首页</button>
 </view>

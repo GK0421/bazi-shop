@@ -1,58 +1,50 @@
-# 八字便利店（bazi-shop）
+﻿# 鍏瓧渚垮埄搴楋紙bazi-shop锛?
+寰俊灏忕▼搴忥細鍏瓧鍒嗘瀽涓庝紶缁熸枃鍖栧涔犲伐鍏?
+**鏂规B**锛氬井淇′簯鍑芥暟璋冪敤澶фā鍨?API锛圡iniMax-M2.7锛?
+GitHub锛歨ttps://github.com/GK0421/bazi-shop
 
-微信小程序：八字分析与传统文化学习工具
-
-**方案B**：微信云函数调用大模型 API（MiniMax-M2.7）
-
-GitHub：https://github.com/GK0421/bazi-shop
-
-## 项目结构
+## 椤圭洰缁撴瀯
 
 ```
 bazi-shop/
-├── miniprogram/              # 小程序前端
-│   ├── pages/index/          # 表单页
-│   └── pages/result/         # 结果展示页
-├── cloudfunctions/           # 微信云函数
-│   └── analyzeBazi/          # 八字分析云函数
-├── docs/                     # 架构文档
-├── scripts/                  # 工具脚本
-├── .gitignore
-├── README.md
-├── LICENSE（MIT）
-└── NOTICE
+鈹溾攢鈹€ miniprogram/              # 灏忕▼搴忓墠绔?鈹?  鈹溾攢鈹€ pages/index/          # 琛ㄥ崟椤?鈹?  鈹斺攢鈹€ pages/result/         # 缁撴灉灞曠ず椤?鈹溾攢鈹€ cloudfunctions/           # 寰俊浜戝嚱鏁?鈹?  鈹斺攢鈹€ analyzeBazi/          # 鍏瓧鍒嗘瀽浜戝嚱鏁?鈹溾攢鈹€ docs/                     # 鏋舵瀯鏂囨。
+鈹溾攢鈹€ scripts/                  # 宸ュ叿鑴氭湰
+鈹溾攢鈹€ .gitignore
+鈹溾攢鈹€ README.md
+鈹溾攢鈹€ LICENSE锛圡IT锛?鈹斺攢鈹€ NOTICE
 ```
 
-## 技术架构
-
-- **前端**：微信小程序（miniprogram）
-- **后端**：微信云函数（Cloud Functions）
-- **大模型**：MiniMax-M2.7（通过云函数环境变量保护 API Key）
-- **API Key**：仅存于微信云函数环境变量，不写入前端代码
-
-## 快速开始
-
-1. 安装 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
-2. 导入项目目录：`D:\bazi-miniprogram-env\02_workspace\bazi-miniprogram`
-3. 开通云开发环境（点击「云开发」按钮）
-4. 在云函数 `analyzeBazi` 的设置中配置环境变量：
-   - `LLM_PROVIDER = minimax`
-   - `LLM_BASE_URL = https://api.minimax.chat/v1`
+## 鎶€鏈灦鏋?
+- **鍓嶇**锛氬井淇″皬绋嬪簭锛坢iniprogram锛?- **鍚庣**锛氬井淇′簯鍑芥暟锛圕loud Functions锛?- **澶фā鍨?*锛歁iniMax-M2.7锛堥€氳繃浜戝嚱鏁扮幆澧冨彉閲忎繚鎶?API Key锛?- **API Key**锛氫粎瀛樹簬寰俊浜戝嚱鏁扮幆澧冨彉閲忥紝涓嶅啓鍏ュ墠绔唬鐮?
+## 蹇€熷紑濮?
+1. 瀹夎 [寰俊寮€鍙戣€呭伐鍏穄(https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
+2. 瀵煎叆椤圭洰鐩綍锛歚D:\bazi-miniprogram-env\02_workspace\bazi-miniprogram`
+3. 寮€閫氫簯寮€鍙戠幆澧冿紙鐐瑰嚮銆屼簯寮€鍙戙€嶆寜閽級
+4. 鍦ㄤ簯鍑芥暟 `analyzeBazi` 鐨勮缃腑閰嶇疆鐜鍙橀噺锛?   - `LLM_PROVIDER = minimax`
+   - `LLM_BASE_URL = https://api.minimaxi.com/v1`
    - `LLM_MODEL = MiniMax-M2.7`
-   - `LLM_API_KEY = 你的 MiniMax Token`
-5. 上传并部署云函数
-6. 编译运行
+   - `LLM_API_KEY = 浣犵殑 MiniMax Token`
+5. 涓婁紶骞堕儴缃蹭簯鍑芥暟
+6. 缂栬瘧杩愯
 
-## 环境变量
+## 鐜鍙橀噺
 
-配置在微信云函数控制台，详见 `docs/方案B_云函数调用大模型架构.md`。
+閰嶇疆鍦ㄥ井淇′簯鍑芥暟鎺у埗鍙帮紝璇﹁ `docs/鏂规B_浜戝嚱鏁拌皟鐢ㄥぇ妯″瀷鏋舵瀯.md`銆?
+## 娉ㄦ剰浜嬮」
 
-## 注意事项
+- API Key 涓ョ鍐欏叆鍓嶇浠ｇ爜
+- `.env.local` 鍜?`project.private.config.json` 涓嶅緱鎻愪氦 Git
+- 鍏瓧鍒嗘瀽浠呬緵濞变箰鍜屾枃鍖栧涔犲弬鑰冿紝涓嶆瀯鎴愪笓涓氬缓璁?
+## 璁稿彲璇?
+MIT License锛岃瑙?LICENSE 涓?NOTICE銆?
 
-- API Key 严禁写入前端代码
-- `.env.local` 和 `project.private.config.json` 不得提交 Git
-- 八字分析仅供娱乐和文化学习参考，不构成专业建议
 
-## 许可证
+## 云函数环境变量配置（无法访问网页控制台时）
 
-MIT License，详见 LICENSE 与 NOTICE。
+如果你的微信开发者工具版本过旧或无法访问 `console.cloud.miniprogram.com`：
+
+1. 复制 `cloudfunctions/analyzeBazi/config.json.example` 为 `config.json`
+2. 编辑 `config.json`，将 `LLM_API_KEY` 替换为你的 MiniMax Token
+3. 在微信开发者工具中上传部署云函数
+4. `config.json` 已在 `.gitignore` 中排除，不会被提交到 GitHub
+5. 每次 `git pull` 后需要重新创建 `config.json`

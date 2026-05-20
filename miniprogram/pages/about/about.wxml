@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="hero-card">
+    <view class="tag-row">
+      <text class="note-tag">开源学习</text>
+      <text class="note-tag gold">合规展示</text>
+    </view>
+    <view class="title">关于八字便利店</view>
+    <view class="subtitle">这是一个传统干支文化学习工具，基于开源 bazi-skill 资料进行小程序化改造，用于展示干支、五行等传统文化概念的解释方式。</view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">项目来源</view>
+    <view class="body-text">
+      项目把传统文化概念整理成手机端可阅读的小卡片，用更轻松的方式展示时间信息。
+    </view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">bazi-skill来源说明</view>
+    <view class="body-text">
+      项目中的内容结构参考了 bazi-skill 的传统干支文化学习方向，只保留文化介绍、概念说明和娱乐参考用途。
+    </view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">MIT License说明</view>
+    <view class="body-text">
+      项目按 MIT License 思路开放使用。使用、修改和分发时，请保留原始许可说明。
+    </view>
+  </view>
+
+  <view class="soft-card">
+    <view class="section-title">合规声明</view>
+    <view class="body-text">
+      本内容仅供传统干支文化学习与娱乐参考，不构成医疗、投资、婚姻、职业或其他现实决策依据。
+    </view>
+  </view>
+</view>
