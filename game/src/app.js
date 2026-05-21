@@ -50,6 +50,7 @@ const {
 } = require("./visuals");
 
 const SCENES = {
+  LOADING: "loading",
   START: "start",
   ROOM_INTRO: "room_intro",
   BATTLE: "battle",
@@ -77,7 +78,7 @@ function createGame() {
     scale: Math.min(canvas.width / CONFIG.width, canvas.height / CONFIG.height),
     now: 0,
     lastFrameAt: 0,
-    scene: SCENES.START,
+    scene: SCENES.LOADING,
     buttons: [],
     touches: [],
     joystick: {
@@ -113,6 +114,11 @@ function createGame() {
     ambientParticles: createAmbientParticles(34),
     arenaRect: null,
     bottomButtons: null,
+    spawnQueue: [],
+    spawnTimer: 0,
+    loading: {
+      readyTimer: 0
+    },
     victory: false,
     tutorialSeen: false,
     showTutorial: false,
@@ -164,6 +170,11 @@ function tick(state, timestamp) {
 function updateScene(state, dt) {
   syncSceneAudio(state);
 
+  if (state.scene === SCENES.LOADING) {
+    updateLoadingScene(state, dt);
+    return;
+  }
+
   if (maybeConsumeSidebarReward(state)) {
     if (state.scene === SCENES.START || state.scene === SCENES.GAME_OVER) {
       state.platform.pendingRunShield += 1;
@@ -204,6 +215,17 @@ function updateScene(state, dt) {
   updateNotifications(state, dt);
 }
 
+function updateLoadingScene(state, dt) {
+  if (!state.visuals || !state.visuals.ready) {
+    return;
+  }
+
+  state.loading.readyTimer += dt;
+  if (state.loading.readyTimer >= 0.18) {
+    state.scene = SCENES.START;
+  }
+}
+
 function updateBattle(state, dt) {
   const player = state.player;
   state.roomElapsed += dt;
@@ -212,8 +234,9 @@ function updateBattle(state, dt) {
   updateEffects(state, dt);
   updateBullets(state, dt);
   updateEnemyBullets(state, dt);
+  processSpawnQueue(state, dt);
   updateEnemies(state, dt);
-  handleDrops(state);
+  handleDrops(state, dt);
   updateRoomFlow(state);
   updateRunTrace(state, dt);
 
@@ -305,6 +328,8 @@ function startRun(state) {
   state.enemyBullets = [];
   state.effects = [];
   state.drops = [];
+  state.spawnQueue = [];
+  state.spawnTimer = 0;
   state.rewardOptions = [];
   state.eventOptions = [];
   state.notifications = [];
@@ -342,6 +367,8 @@ function startNextRoom(state) {
   state.drops = [];
   state.rewardOptions = [];
   state.eventOptions = [];
+  state.spawnQueue = [];
+  state.spawnTimer = 0;
   state.player.x = CONFIG.width / 2;
   state.player.y = 652;
   addNotification(state, `${state.room.name}`, "accent");
@@ -392,12 +419,34 @@ function spawnWave(state) {
 
   const wave = room.waves[room.currentWave];
   const difficultyScale = 1 + state.roomIndex * 0.12;
+  state.spawnQueue = [];
   for (let i = 0; i < wave.length; i += 1) {
     const enemyId = wave[i];
-    state.enemies.push(createEnemy(enemyId, i, difficultyScale));
+    state.spawnQueue.push({
+      enemyId,
+      index: i,
+      scaleFactor: difficultyScale
+    });
   }
+  state.spawnTimer = 0;
   room.currentWave += 1;
-  addNotification(state, `第 ${room.currentWave} 波敌人出现`, "accent");
+  addNotification(state, `第 ${room.currentWave} 波正在涌入`, "accent");
+}
+
+function processSpawnQueue(state, dt) {
+  if (!state.spawnQueue.length) {
+    return;
+  }
+
+  state.spawnTimer -= dt;
+  if (state.spawnTimer > 0) {
+    return;
+  }
+
+  const nextSpawn = state.spawnQueue.shift();
+  state.enemies.push(createEnemy(nextSpawn.enemyId, nextSpawn.index, nextSpawn.scaleFactor));
+  emitCircle(state, state.enemies[state.enemies.length - 1].x, state.enemies[state.enemies.length - 1].y, 22, "#B8860B", 0.16);
+  state.spawnTimer = state.spawnQueue.length > 0 ? 0.16 : 0.24;
 }
 
 function createEnemy(enemyId, index, scaleFactor) {
@@ -1050,11 +1099,11 @@ function spawnDrop(state, enemy) {
   }
 }
 
-function handleDrops(state) {
+function handleDrops(state, dt) {
   const alive = [];
   for (let i = 0; i < state.drops.length; i += 1) {
     const drop = state.drops[i];
-    drop.life -= 1 / 60;
+    drop.life -= dt;
     if (drop.life <= 0) {
       continue;
     }
@@ -1074,6 +1123,10 @@ function handleDrops(state) {
 
 function updateRoomFlow(state) {
   if (!state.room || state.scene !== SCENES.BATTLE) {
+    return;
+  }
+
+  if (state.spawnQueue.length > 0) {
     return;
   }
 
@@ -1513,7 +1566,9 @@ function render(state) {
   drawBackground(state);
   state.buttons = [];
 
-  if (state.scene === SCENES.START) {
+  if (state.scene === SCENES.LOADING) {
+    drawLoadingScene(state);
+  } else if (state.scene === SCENES.START) {
     drawStartScene(state);
   } else if (state.scene === SCENES.ROOM_INTRO) {
     drawBattleScene(state);
@@ -1546,6 +1601,39 @@ function render(state) {
 
   drawNotifications(state);
   ctx.restore();
+}
+
+function drawLoadingScene(state) {
+  const ctx = state.ctx;
+  const loaded = state.visuals ? state.visuals.loaded : 0;
+  const total = state.visuals ? Math.max(1, state.visuals.total) : 1;
+  const progress = loaded / total;
+
+  drawPanel(ctx, 82, 382, 556, 318, 30);
+  drawText(ctx, APP_NAME_CN, CONFIG.width / 2, 468, {
+    size: 48,
+    weight: "700",
+    color: PALETTE.white,
+    align: "center"
+  });
+  drawText(ctx, APP_NAME_SUB, CONFIG.width / 2, 510, {
+    size: 20,
+    color: PALETTE.gold,
+    align: "center"
+  });
+  drawText(ctx, "正在预热像素资源与战斗场景", CONFIG.width / 2, 564, {
+    size: 16,
+    color: PALETTE.parchmentDim,
+    align: "center"
+  });
+
+  drawPixelFrame(ctx, 132, 612, 456, 34, "rgba(10,8,18,0.92)", "rgba(212,196,168,0.18)", "rgba(0,0,0,0.24)");
+  drawPixelFrame(ctx, 138, 618, 444 * progress, 22, "rgba(168,74,86,0.96)", "rgba(232,185,109,0.64)", null);
+  drawText(ctx, `${loaded} / ${total}`, CONFIG.width / 2, 676, {
+    size: 16,
+    color: PALETTE.parchment,
+    align: "center"
+  });
 }
 
 function fitCanvasToReference(state) {
