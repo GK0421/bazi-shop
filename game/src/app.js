@@ -1784,12 +1784,46 @@ function drawStartScene(state) {
     size: 16,
     color: PALETTE.parchmentDim
   });
+  drawPixelFrame(ctx, 442, 346, 174, 212, "rgba(22,18,38,0.96)", withAlpha(selectedCharacter.color, 0.78), "rgba(0,0,0,0.26)");
   if (selectedVisual) {
-    drawContainedImage(ctx, selectedVisual, 446, 352, 170, 246, 1);
+    drawContainedImage(ctx, selectedVisual, 446, 352, 166, 198, 1);
   }
+  const leftRect = { x: 428, y: 420, width: 32, height: 56 };
+  const rightRect = { x: 598, y: 420, width: 32, height: 56 };
+  drawPixelFrame(ctx, leftRect.x, leftRect.y, leftRect.width, leftRect.height, "rgba(12,10,22,0.94)", "rgba(212,196,168,0.36)", "rgba(0,0,0,0.22)");
+  drawPixelFrame(ctx, rightRect.x, rightRect.y, rightRect.width, rightRect.height, "rgba(12,10,22,0.94)", "rgba(212,196,168,0.36)", "rgba(0,0,0,0.22)");
+  drawText(ctx, "<", leftRect.x + leftRect.width / 2, leftRect.y + 34, {
+    size: 22,
+    weight: "700",
+    color: PALETTE.parchment,
+    align: "center"
+  });
+  drawText(ctx, ">", rightRect.x + rightRect.width / 2, rightRect.y + 34, {
+    size: 22,
+    weight: "700",
+    color: PALETTE.parchment,
+    align: "center"
+  });
+  state.buttons.push({
+    rect: leftRect,
+    onTap: function onPrevCharacter() {
+      cycleSelectedCharacter(state, -1);
+    }
+  });
+  state.buttons.push({
+    rect: rightRect,
+    onTap: function onNextCharacter() {
+      cycleSelectedCharacter(state, 1);
+    }
+  });
   drawText(ctx, `${selectedCharacter.title} · ${selectedCharacter.shortName}`, 528, 598, {
     size: 16,
     color: selectedCharacter.color,
+    align: "center"
+  });
+  drawText(ctx, selectedCharacter.passive, 528, 622, {
+    size: 12,
+    color: PALETTE.parchmentDim,
     align: "center"
   });
 
@@ -1841,7 +1875,13 @@ function drawStartScene(state) {
     });
   }
 
-  const startButton = { x: 118, y: 918, width: 484, height: 92 };
+  drawText(ctx, "点击角色卡，或用左右箭头切换当前主角", CONFIG.width / 2, 904, {
+    size: 14,
+    color: PALETTE.parchmentDim,
+    align: "center"
+  });
+
+  const startButton = { x: 118, y: 928, width: 484, height: 92 };
   drawPrimaryButton(ctx, startButton, "进入深渊", `以 ${CHARACTERS[state.selectedCharacterId].shortName} 作为本局主角`);
   state.buttons.push({
     rect: startButton,
@@ -1850,8 +1890,8 @@ function drawStartScene(state) {
     }
   });
 
-  const tutorialButton = { x: 118, y: 1030, width: 230, height: 68 };
-  const audioButton = { x: 372, y: 1030, width: 230, height: 68 };
+  const tutorialButton = { x: 118, y: 1040, width: 230, height: 68 };
+  const audioButton = { x: 372, y: 1040, width: 230, height: 68 };
   drawGhostButton(ctx, tutorialButton, "玩法说明");
   drawGhostButton(ctx, audioButton, state.audio.enabled ? "音频：开启" : "音频：关闭");
   state.buttons.push({
@@ -1869,22 +1909,29 @@ function drawStartScene(state) {
   });
 
   if (state.platform.pendingRunShield > 0) {
-    drawText(ctx, `已存入回访奖励：下一局护盾 +${state.platform.pendingRunShield}`, CONFIG.width / 2, 1112, {
+    drawText(ctx, `已存入回访奖励：下一局护盾 +${state.platform.pendingRunShield}`, CONFIG.width / 2, 1122, {
       size: 15,
       color: PALETTE.gold,
       align: "center"
     });
   }
-  drawText(ctx, `最佳记录：${state.bestRecord.victory ? "已通关" : "未通关"} · 房间 ${state.bestRecord.roomsCleared} · 击杀 ${state.bestRecord.kills}`, CONFIG.width / 2, 1140, {
+  drawText(ctx, `最佳记录：${state.bestRecord.victory ? "已通关" : "未通关"} · 房间 ${state.bestRecord.roomsCleared} · 击杀 ${state.bestRecord.kills}`, CONFIG.width / 2, 1150, {
     size: 16,
     color: PALETTE.parchmentDim,
     align: "center"
   });
-  drawText(ctx, "左手摇杆移动，武器自动射击，右侧技能与换人决定你的 Build 节奏。", CONFIG.width / 2, 1172, {
+  drawText(ctx, "左手摇杆移动，武器自动射击，右侧技能与换人决定你的 Build 节奏。", CONFIG.width / 2, 1180, {
     size: 15,
     color: PALETTE.parchmentDim,
     align: "center"
   });
+}
+
+function cycleSelectedCharacter(state, direction) {
+  const currentIndex = CHARACTER_ORDER.indexOf(state.selectedCharacterId);
+  const nextIndex = (currentIndex + direction + CHARACTER_ORDER.length) % CHARACTER_ORDER.length;
+  state.selectedCharacterId = CHARACTER_ORDER[nextIndex];
+  persistPersistentState(state);
 }
 
 function drawBattleScene(state) {
